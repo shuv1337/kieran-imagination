@@ -27,6 +27,21 @@
       ::-webkit-scrollbar-thumb:hover {
         background: #5f7e97;
       }
+
+      /* Magic Loader Animation */
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+      .magic-loader {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: conic-gradient(#82AAFF, #c792ea, #addb67, #82AAFF);
+        -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #fff 0);
+        mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #fff 0);
+        animation: spin 1s linear infinite;
+        filter: drop-shadow(0 0 4px rgba(130, 170, 255, 0.5));
+      }
     </style>
   <script type="importmap">
 {

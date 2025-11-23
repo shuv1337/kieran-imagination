@@ -16,6 +16,64 @@ export const Generator: React.FC<GeneratorProps> = ({ onImageGenerated }) => {
     'A robot dinosaur playing soccer on Mars with alien spectators',
     'A pirate ship sailing across clouds made of cotton candy',
     'A space otter astronaut watering a tiny moon garden',
+    'A magical forest where the mushrooms are houses for fairies',
+    'A group of hamsters having a tea party in a dollhouse',
+    'A superhero dog saving a city made of building blocks',
+    'A friendly monster baking cookies in a volcano kitchen',
+    'A mermaid riding a seahorse through a coral reef city',
+    'A castle made entirely of ice cream and candy',
+    'A detective owl solving a mystery in a forest library',
+    'A race car driving on a track made of rainbows',
+    'A family of bears having a picnic on the moon',
+    'A wizard cat casting spells on balls of yarn',
+    'A submarine exploring an underwater city of glowing jellyfish',
+    'A giant turtle carrying an island on its back',
+    'A squirrel knight defending a castle of acorns',
+    'A band of frogs playing instruments on lily pads',
+    'A train traveling through a tunnel of stars',
+    'A robot helping a gardener plant giant sunflowers',
+    'A unicorn galloping through a field of crystal flowers',
+    'A fox and a rabbit sharing a campfire story',
+    'A city in the clouds with flying boats',
+    'A baby elephant painting a masterpiece with its trunk',
+    'A lighthouse guiding ships in a sea of stars',
+    'A baker making a cake as tall as a skyscraper',
+    'A group of penguins building a snow fort',
+    'A time-traveling bicycle with wings',
+    'A secret garden hidden inside a giant book',
+    'A koala dj spinning records at a jungle party',
+    'A sloth racing a snail on a branch',
+    'A giraffe wearing a scarf and reading a newspaper',
+    'A jellyfish wizard stirring potions in an underwater cauldron',
+    'A baby dragon rolling cookie dough with a rolling pin twice its size',
+    'A panda astronaut planting a flag on a giant floating donut planet',
+    'A mouse chef making tiny pizzas in an acorn oven',
+    'A camel exploring a desert made of giant hourglasses',
+    'A kangaroo mail carrier delivering letters to cloud houses',
+    'A chameleon painting a rainbow mural with its tail',
+    'A family of owls flying kites made of leaves',
+    'A friendly yeti roasting marshmallows in a snowy cave',
+    'A squirrel scientist studying glowing acorns in a forest lab',
+    'A whale floating through the sky carrying hot-air balloons',
+    'A pair of raccoons running a cozy bakery at midnight',
+    'A cactus cowboy riding a broomstick horse across the desert',
+    'A wolf librarian shelving books in a magical moonlit archive',
+    'A snail explorer navigating a maze of giant flowers',
+    'A rabbit pilot flying a carrot-shaped airplane',
+    'A tiny dragon curled up inside a teacup castle',
+    'A family of turtles building sandcastles shaped like ancient ruins',
+    'A robot cat tending to a garden of neon plants',
+    'A fox detective following glowing footprints through a foggy village',
+    'A polar bear sculpting ice statues under a rainbow sun',
+    'A hedgehog barista serving tiny mugs of cocoa in a forest café',
+    'A goat wizard brewing clouds into potions on a mountaintop',
+    'A bee orchestra performing on honeycomb stages',
+    'A hippo painter creating murals on floating bubbles',
+    'A wizard frog teaching magic to tadpoles in a lily-pad classroom',
+    'A space whale towing a constellation like a glowing net',
+    'A family of ducks camping beside a river of sparkling stars',
+    'A bear astronaut discovering a candy-planet meteor shower',
+    'A fox riding a bicycle through a town filled with giant origami animals',
   ];
 
   const createFileName = (description: string) => {
@@ -170,8 +228,8 @@ export const Generator: React.FC<GeneratorProps> = ({ onImageGenerated }) => {
               >
                 {isGenerating ? (
                   <>
-                    <div className="animate-spin rounded-full h-6 w-6 border-4 border-[#d6deeb] border-t-transparent"></div>
-                    Creating Magic...
+                    <div className="magic-loader"></div>
+                    Creating Magic... (~30-45s)
                   </>
                 ) : (
                   <>
@@ -179,6 +237,15 @@ export const Generator: React.FC<GeneratorProps> = ({ onImageGenerated }) => {
                   </>
                 )}
               </button>
+
+              {isGenerating && (
+                <div className="mt-4 p-4 bg-[#0b253a]/80 border border-[#82AAFF]/30 rounded-xl flex items-center gap-3 animate-pulse">
+                  <Sparkles className="text-[#c792ea] shrink-0" size={20} />
+                  <p className="text-[#d6deeb] text-sm">
+                    <span className="font-bold text-[#82AAFF]">Please wait!</span> Generating high-quality line art takes about 30-45 seconds. We're drawing every detail...
+                  </p>
+                </div>
+              )}
             </div>
 
           </div>
@@ -211,7 +278,7 @@ export const Generator: React.FC<GeneratorProps> = ({ onImageGenerated }) => {
             <Upload size={24} />
           </div>
           <div>
-            <h3 className="font-bold text-[#d6deeb]">Photo to Page</h3>
+            <h3 className="font-bold text-[#d6deeb]">Photo to Coloring Page</h3>
             <p className="text-xs text-[#5f7e97]">Convert memories to art</p>
           </div>
         </div>
