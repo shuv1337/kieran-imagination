@@ -128,7 +128,7 @@ export const Generator: React.FC<GeneratorProps> = ({ onImageGenerated }) => {
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto p-6 pt-12 flex flex-col gap-6">
+    <div className="w-full max-w-4xl mx-auto p-6 pt-2 flex flex-col gap-6">
 
       <div className="text-center order-1 md:order-1">
         <h1 className="text-6xl font-bold text-[#d6deeb] tracking-tight font-fredoka">
