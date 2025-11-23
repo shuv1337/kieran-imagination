@@ -1,4 +1,3 @@
-import React from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
 import { Generator } from './Generator';
@@ -8,7 +7,7 @@ vi.mock('../services/gemini', () => ({
   generateColoringPage: vi.fn(),
 }));
 
-const mockGenerateColoringPage = vi.mocked(generateColoringPage);
+const mockGenerateColoringPage = generateColoringPage as unknown as ReturnType<typeof vi.fn>;
 
 afterEach(() => {
   cleanup();
@@ -27,7 +26,11 @@ describe('Generator', () => {
 
   it('calls Gemini service and propagates the generated image', async () => {
     const onImageGenerated = vi.fn();
-    mockGenerateColoringPage.mockResolvedValueOnce('data:image/png;base64,fake');
+    mockGenerateColoringPage.mockResolvedValueOnce({
+      url: '/api/images/view?key=generated/2025-11-22/test.png',
+      previewUrl: 'data:image/png;base64,fake',
+      key: 'generated/2025-11-22/test.png'
+    });
     vi.spyOn(Date, 'now').mockReturnValue(1234567890);
 
     render(<Generator onImageGenerated={onImageGenerated} />);
@@ -47,7 +50,12 @@ describe('Generator', () => {
         'A dragon with balloons',
         undefined
       );
-      expect(onImageGenerated).toHaveBeenCalledWith('data:image/png;base64,fake', 'a-dragon-with-balloons-1234567890.png');
+      expect(onImageGenerated).toHaveBeenCalledWith(
+        'data:image/png;base64,fake', 
+        'a-dragon-with-balloons-1234567890.png',
+        'generated/2025-11-22/test.png',
+        '/api/images/view?key=generated/2025-11-22/test.png'
+      );
     });
 
     expect(generateButton).not.toBeDisabled();

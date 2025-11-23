@@ -1,6 +1,7 @@
 export interface GeneratedImage {
-  url: string;
-  key: string;
+  url: string; // persisted, renderable URL (proxy/public)
+  key: string; // R2 key for reference/history
+  previewUrl?: string; // optional base64 data URL for immediate display
 }
 
 export const generateColoringPage = async (

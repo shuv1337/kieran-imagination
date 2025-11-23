@@ -3,7 +3,7 @@ import { Upload, Sparkles, Image as ImageIcon, ArrowRight } from 'lucide-react';
 import { generateColoringPage } from '../services/gemini';
 
 interface GeneratorProps {
-  onImageGenerated: (imageUrl: string, fileName: string, key?: string) => void;
+  onImageGenerated: (imageUrl: string, fileName: string, key?: string, publicUrl?: string) => void;
 }
 
 export const Generator: React.FC<GeneratorProps> = ({ onImageGenerated }) => {
@@ -55,7 +55,8 @@ export const Generator: React.FC<GeneratorProps> = ({ onImageGenerated }) => {
       const effectivePrompt = prompt || "Convert this image into a fun coloring page.";
       const result = await generateColoringPage(effectivePrompt, uploadedImage || undefined);
       const fileName = createFileName(effectivePrompt);
-      onImageGenerated(result.url, fileName, result.key);
+      const preview = result.previewUrl || result.url;
+      onImageGenerated(preview, fileName, result.key, result.url);
     } catch (error) {
       console.error(error);
       const message =

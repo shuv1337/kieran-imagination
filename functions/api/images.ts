@@ -1,4 +1,13 @@
-import { saveImageToR2AndDb } from "../utils";
+import {
+    HttpError,
+    enforceRateLimit,
+    getBase64FromUrl,
+    getClientIp,
+    jsonResponse,
+    logError,
+    saveImageToR2AndDb,
+    validatePayload,
+} from "../utils";
 
 interface Env {
     IMAGES_BUCKET: R2Bucket;
@@ -6,36 +15,42 @@ interface Env {
 }
 
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
+    const requestId = crypto.randomUUID();
+    const ip = getClientIp(request);
+
     try {
-        const { dataUrl, fileName } = await request.json() as { dataUrl: string; fileName: string };
+        const body = await request.json().catch(() => {
+            throw new HttpError(400, "Invalid JSON payload");
+        });
+
+        const { dataUrl, fileName } = body as { dataUrl?: string; fileName?: string };
 
         if (!dataUrl) {
-            return new Response("Image data is required", { status: 400 });
+            throw new HttpError(400, "Image data is required");
         }
 
-        // We use the fileName from client as a hint or part of metadata, 
-        // but saveImageToR2AndDb generates a unique ID.
-        // We could pass the fileName to be stored in metadata if we update saveImageToR2AndDb.
-        // For now, we just save it.
+        enforceRateLimit(ip, 'images');
 
-        // Note: saveImageToR2AndDb expects 'generate' | 'edit' | 'upscale'.
-        // We can add 'upload' or just use 'generate' as fallback.
-        // Let's update utils.ts to accept string or add 'upload' to type if we were strict.
-        // But utils.ts defined: source: 'generate' | 'edit' | 'upscale'
-        // Let's cast it or update utils.ts. 
-        // Since I can't easily update utils.ts without rewriting it, I'll just use 'generate' for now 
-        // or 'edit' if it looks like an edit? No, let's just use 'generate'.
+        const base64Data = getBase64FromUrl(dataUrl);
+        validatePayload("Manual Upload", base64Data);
 
-        const key = await saveImageToR2AndDb(env, dataUrl.split(',')[1], "Manual Upload", 'generate');
+        const { key, publicUrl } = await saveImageToR2AndDb(env, base64Data, "Manual Upload", 'upload', {
+            originalFileName: fileName,
+        });
 
-        return new Response(JSON.stringify({
-            url: key // The frontend expects { url } from services/storage.ts
-        }), {
-            headers: { "Content-Type": "application/json" }
+        return jsonResponse({
+            url: publicUrl,
+            previewUrl: dataUrl,
+            key,
         });
 
     } catch (error) {
-        console.error("Image Upload Error:", error);
-        return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+        const status = error instanceof HttpError ? error.status : 500;
+        const message = status >= 500
+            ? "Failed to upload image. Please try again."
+            : (error instanceof Error ? error.message : "Request failed.");
+
+        logError("images", error, { requestId, ip });
+        return jsonResponse({ error: message }, status);
     }
 };

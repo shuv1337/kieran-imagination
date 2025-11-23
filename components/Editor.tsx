@@ -359,11 +359,11 @@ export const Editor: React.FC<EditorProps> = ({ initialImage, fileName, onBack }
             let result;
             if (action === 'upscale') {
                 const res = await aiUpscaleImage(current);
-                result = res.url;
+                result = res.previewUrl || res.url;
             } else {
                 if (!aiPrompt) return;
                 const res = await aiEditImage(current, aiPrompt);
-                result = res.url;
+                result = res.previewUrl || res.url;
                 setAiPrompt('');
             }
 

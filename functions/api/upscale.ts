@@ -1,5 +1,14 @@
 import { GoogleGenAI } from "@google/genai";
-import { saveImageToR2AndDb } from "../utils";
+import {
+    HttpError,
+    enforceRateLimit,
+    getBase64FromUrl,
+    getClientIp,
+    jsonResponse,
+    logError,
+    saveImageToR2AndDb,
+    validatePayload,
+} from "../utils";
 
 interface Env {
     GEMINI_API_KEY: string;
@@ -8,12 +17,24 @@ interface Env {
 }
 
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
+    const requestId = crypto.randomUUID();
+    const ip = getClientIp(request);
+
     try {
-        const { currentImage } = await request.json() as { currentImage: string };
+        const body = await request.json().catch(() => {
+            throw new HttpError(400, "Invalid JSON payload");
+        });
+
+        const { currentImage } = body as { currentImage?: string };
 
         if (!currentImage) {
-            return new Response("Image is required", { status: 400 });
+            throw new HttpError(400, "Image is required");
         }
+
+        enforceRateLimit(ip, 'upscale');
+
+        const base64Data = getBase64FromUrl(currentImage);
+        validatePayload("Upscale", base64Data);
 
         const ai = new GoogleGenAI({ apiKey: env.GEMINI_API_KEY });
         const model = 'gemini-3-pro-image-preview';
@@ -24,7 +45,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
             {
                 inlineData: {
                     mimeType: 'image/png',
-                    data: currentImage.split(',')[1],
+                    data: base64Data,
                 },
             },
             { text: fullPrompt },
@@ -43,7 +64,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
 
         const candidate = response.candidates?.[0];
         if (!candidate?.content?.parts) {
-            throw new Error("No image generated");
+            throw new HttpError(502, "No image generated");
         }
 
         let base64Image = "";
@@ -55,20 +76,24 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
         }
 
         if (!base64Image) {
-            throw new Error("No image data found in response");
+            throw new HttpError(502, "No image data found in response");
         }
 
-        const key = await saveImageToR2AndDb(env, base64Image, 'Upscale', 'upscale');
+        const { key, publicUrl } = await saveImageToR2AndDb(env, base64Image, 'Upscale', 'upscale');
 
-        return new Response(JSON.stringify({
-            url: `data:image/png;base64,${base64Image}`,
+        return jsonResponse({
+            url: publicUrl,
+            previewUrl: `data:image/png;base64,${base64Image}`,
             key
-        }), {
-            headers: { "Content-Type": "application/json" }
         });
 
     } catch (error) {
-        console.error("Upscale Error:", error);
-        return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+        const status = error instanceof HttpError ? error.status : 500;
+        const message = status >= 500
+            ? "Failed to upscale image. Please try again."
+            : (error instanceof Error ? error.message : "Request failed.");
+
+        logError("upscale", error, { requestId, ip });
+        return jsonResponse({ error: message }, status);
     }
 };

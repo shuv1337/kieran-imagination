@@ -1,5 +1,14 @@
 import { GoogleGenAI } from "@google/genai";
-import { saveImageToR2AndDb } from "../utils";
+import {
+    HttpError,
+    enforceRateLimit,
+    getBase64FromUrl,
+    getClientIp,
+    jsonResponse,
+    logError,
+    saveImageToR2AndDb,
+    validatePayload,
+} from "../utils";
 
 interface Env {
     GEMINI_API_KEY: string;
@@ -8,23 +17,35 @@ interface Env {
 }
 
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
+    const requestId = crypto.randomUUID();
+    const ip = getClientIp(request);
+
     try {
-        const { prompt, referenceImage } = await request.json() as { prompt: string; referenceImage?: string };
+        const body = await request.json().catch(() => {
+            throw new HttpError(400, "Invalid JSON payload");
+        });
+
+        const { prompt, referenceImage } = body as { prompt?: string; referenceImage?: string };
 
         if (!prompt) {
-            return new Response("Prompt is required", { status: 400 });
+            throw new HttpError(400, "Prompt is required");
         }
+
+        enforceRateLimit(ip, 'generate');
+
+        const base64Data = referenceImage ? getBase64FromUrl(referenceImage) : undefined;
+        validatePayload(prompt, base64Data);
 
         const ai = new GoogleGenAI({ apiKey: env.GEMINI_API_KEY });
         const model = 'gemini-3-pro-image-preview';
 
         const parts: any[] = [];
 
-        if (referenceImage) {
+        if (referenceImage && base64Data) {
             parts.push({
                 inlineData: {
                     mimeType: 'image/png',
-                    data: referenceImage.split(',')[1],
+                    data: base64Data,
                 },
             });
         }
@@ -54,7 +75,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
 
         const candidate = response.candidates?.[0];
         if (!candidate?.content?.parts) {
-            throw new Error("No image generated");
+            throw new HttpError(502, "No image generated");
         }
 
         let base64Image = "";
@@ -66,24 +87,24 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
         }
 
         if (!base64Image) {
-            throw new Error("No image data found in response");
+            throw new HttpError(502, "No image data found in response");
         }
 
-        // Save to R2 and D1
-        const key = await saveImageToR2AndDb(env, base64Image, prompt, 'generate');
+        const { key, publicUrl } = await saveImageToR2AndDb(env, base64Image, prompt, 'generate');
 
-        // Return the key (frontend will need to fetch it)
-        // Or return the base64 for immediate display + the key?
-        // Returning base64 is faster for UX.
-        return new Response(JSON.stringify({
-            url: `data:image/png;base64,${base64Image}`,
+        return jsonResponse({
+            url: publicUrl,
+            previewUrl: `data:image/png;base64,${base64Image}`,
             key
-        }), {
-            headers: { "Content-Type": "application/json" }
         });
 
     } catch (error) {
-        console.error("Generate Error:", error);
-        return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+        const status = error instanceof HttpError ? error.status : 500;
+        const message = status >= 500
+            ? "Failed to generate image. Please try again."
+            : (error instanceof Error ? error.message : "Request failed.");
+
+        logError("generate", error, { requestId, ip });
+        return jsonResponse({ error: message }, status);
     }
 };
