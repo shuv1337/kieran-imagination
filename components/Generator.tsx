@@ -128,19 +128,22 @@ export const Generator: React.FC<GeneratorProps> = ({ onImageGenerated }) => {
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto p-6 pt-12 flex flex-col gap-12">
+    <div className="w-full max-w-4xl mx-auto p-6 pt-12 flex flex-col gap-6">
 
-      <div className="text-center order-2 md:order-1">
-        <h1 className="text-6xl font-bold text-[#d6deeb] mb-6 tracking-tight font-fredoka">
+      <div className="text-center order-1 md:order-1">
+        <h1 className="text-6xl font-bold text-[#d6deeb] tracking-tight font-fredoka">
           Dream it. <span className="text-[#82AAFF]">Color it.</span>
         </h1>
+      </div>
+
+      <div className="text-center order-3 md:order-2 md:mb-10">
         <p className="text-xl text-[#5f7e97] max-w-2xl mx-auto">
           Enter Kieran's Imagination. Use AI to turn your wildest ideas or photos into amazing coloring pages instantly.
         </p>
       </div>
 
       {/* Main Card - Using Night Owl 'input.background' (#0b253a) as surface for contrast against #011627 */}
-      <div className="bg-[#0b253a] rounded-3xl shadow-2xl shadow-[#011627]/50 p-8 border border-[#122d42] order-1 md:order-2">
+      <div className="bg-[#0b253a] rounded-3xl shadow-2xl shadow-[#011627]/50 p-8 border border-[#122d42] order-2 md:order-3">
 
         <div className="space-y-8">
 
@@ -254,7 +257,7 @@ export const Generator: React.FC<GeneratorProps> = ({ onImageGenerated }) => {
       </div>
 
       {/* Features Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 order-3">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 order-4 md:order-4 md:mt-10">
         <div className="flex items-center gap-4 p-5 bg-[#0b253a]/50 border border-[#122d42] rounded-2xl">
           <div className="p-3 bg-[#82AAFF]/10 text-[#82AAFF] rounded-xl">
             <ImageIcon size={24} />
