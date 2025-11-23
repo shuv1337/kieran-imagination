@@ -7,6 +7,7 @@ export interface GeneratedImage {
 
 export enum AppView {
   GENERATOR = 'GENERATOR',
+  PREVIEW = 'PREVIEW',
   EDITOR = 'EDITOR',
 }
 

@@ -3,13 +3,38 @@ import { Upload, Sparkles, Image as ImageIcon, ArrowRight } from 'lucide-react';
 import { generateColoringPage } from '../services/gemini';
 
 interface GeneratorProps {
-  onImageGenerated: (imageUrl: string) => void;
+  onImageGenerated: (imageUrl: string, fileName: string) => void;
 }
 
 export const Generator: React.FC<GeneratorProps> = ({ onImageGenerated }) => {
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const suggestions = [
+    'A dragon teaching penguins how to snowboard under the northern lights',
+    'A cozy treehouse library with floating lanterns and a sleepy cat',
+    'A robot dinosaur playing soccer on Mars with alien spectators',
+    'A pirate ship sailing across clouds made of cotton candy',
+    'A space otter astronaut watering a tiny moon garden',
+  ];
+
+  const createFileName = (description: string) => {
+    const cleaned = description
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, ' ')
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 8)
+      .join('-');
+    const base = cleaned || 'kierans-art';
+    return `${base}-${Date.now()}.png`;
+  };
+
+  const handleLuckyPrompt = () => {
+    const suggestion = suggestions[Math.floor(Math.random() * suggestions.length)];
+    setPrompt(suggestion);
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -29,10 +54,15 @@ export const Generator: React.FC<GeneratorProps> = ({ onImageGenerated }) => {
     try {
       const effectivePrompt = prompt || "Convert this image into a fun coloring page.";
       const result = await generateColoringPage(effectivePrompt, uploadedImage || undefined);
-      onImageGenerated(result);
+      const fileName = createFileName(effectivePrompt);
+      onImageGenerated(result, fileName);
     } catch (error) {
       console.error(error);
-      alert("Oops! Something went wrong generating the image. Please try again.");
+      const message =
+        error instanceof Error && error.message === 'SAFETY_BLOCKED'
+          ? "The AI couldn't create that because the prompt triggered content restrictions. Please try a kid-friendly idea and avoid sensitive details."
+          : "Oops! Something went wrong generating the image. Please try again.";
+      alert(message);
     } finally {
       setIsGenerating(false);
     }
@@ -67,9 +97,14 @@ export const Generator: React.FC<GeneratorProps> = ({ onImageGenerated }) => {
                 placeholder="E.g., A robot dinosaur playing soccer on Mars..."
                 className="w-full p-5 text-lg bg-[#011627] border-2 border-[#5f7e97] text-[#d6deeb] rounded-2xl focus:border-[#82AAFF] focus:ring-0 transition-all outline-none resize-none h-36 placeholder-[#5f7e97]/50"
               />
-              <div className="absolute bottom-4 right-4 text-[#82AAFF] animate-pulse pointer-events-none">
-                <Sparkles size={24} />
-              </div>
+              <button
+                type="button"
+                onClick={handleLuckyPrompt}
+                className="absolute bottom-4 right-4 text-[#82AAFF] hover:text-white bg-[#0b253a] border border-[#234d70] rounded-full p-2 shadow-md shadow-[#011627]/50 transition-all hover:-translate-y-0.5"
+                title="I'm feeling lucky"
+              >
+                <Sparkles size={20} />
+              </button>
             </div>
           </div>
 

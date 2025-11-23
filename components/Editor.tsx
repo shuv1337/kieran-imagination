@@ -9,10 +9,11 @@ import { ToolType, PatternType, TextureType } from '../types';
 
 interface EditorProps {
   initialImage: string;
+  fileName?: string;
   onBack: () => void;
 }
 
-export const Editor: React.FC<EditorProps> = ({ initialImage, onBack }) => {
+export const Editor: React.FC<EditorProps> = ({ initialImage, fileName, onBack }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const textInputRef = useRef<HTMLInputElement>(null);
 
@@ -406,7 +407,7 @@ export const Editor: React.FC<EditorProps> = ({ initialImage, onBack }) => {
             <div className="h-6 w-px bg-[#122d42] mx-2"></div>
             <button onClick={() => {
                 const link = document.createElement('a');
-                link.download = 'kierans-art.png';
+                link.download = fileName || 'kierans-art.png';
                 link.href = canvasRef.current?.toDataURL() || '';
                 link.click();
             }} className="bg-[#7e57c2] hover:bg-[#6c4ba6] text-white px-4 py-1.5 rounded-full text-sm font-bold flex items-center gap-2">

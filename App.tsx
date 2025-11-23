@@ -1,20 +1,68 @@
 import React, { useState } from 'react';
 import { Generator } from './components/Generator';
 import { Editor } from './components/Editor';
+import { Preview } from './components/Preview';
 import { AppView } from './types';
 import kieranLogo from './kieran-logo.png';
+import { aiEditImage } from './services/gemini';
+import { saveGeneratedImage } from './services/storage';
 
 const App: React.FC = () => {
   const [view, setView] = useState<AppView>(AppView.GENERATOR);
-  const [currentImage, setCurrentImage] = useState<string | null>(null);
+  const [currentImageData, setCurrentImageData] = useState<string | null>(null);
+  const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(null);
+  const [currentFileName, setCurrentFileName] = useState<string>('kierans-art.png');
+  const [isEnhancing, setIsEnhancing] = useState(false);
 
-  const handleImageGenerated = (imageUrl: string) => {
-    setCurrentImage(imageUrl);
-    setView(AppView.EDITOR);
+  const persistImage = async (dataUrl: string, fileName: string) => {
+    try {
+      const url = await saveGeneratedImage(dataUrl, fileName);
+      setCurrentImageUrl(url);
+    } catch (error) {
+      console.error('Failed to persist image', error);
+      setCurrentImageUrl(dataUrl); // fallback to data URL if save fails
+    }
+  };
+
+  const handleImageGenerated = (imageUrl: string, fileName: string) => {
+    setCurrentImageData(imageUrl);
+    setCurrentImageUrl(null);
+    setCurrentFileName(fileName);
+    setView(AppView.PREVIEW);
+    void persistImage(imageUrl, fileName);
   };
 
   const handleBackToGenerator = () => {
     setView(AppView.GENERATOR);
+  };
+
+  const handleOpenEditor = () => {
+    setView(AppView.EDITOR);
+  };
+
+  const handleBackToPreview = () => {
+    setView(AppView.PREVIEW);
+  };
+
+  const handleEnhanceDetail = async () => {
+    if (!currentImageData) return;
+    setIsEnhancing(true);
+    try {
+      const enhanced = await aiEditImage(
+        currentImageData,
+        'Add more crisp black line art detail and small patterns to the existing shapes while keeping it a clean, printable black-and-white coloring page. Do not add shading, grayscale, colors, textures, frames, or backgrounds.'
+      );
+      const enhancedFileName = `${(currentFileName.replace(/\.png$/i, '') || 'kierans-art')}-enhanced.png`;
+      setCurrentImageData(enhanced);
+      setCurrentImageUrl(null);
+      setCurrentFileName(enhancedFileName);
+      void persistImage(enhanced, enhancedFileName);
+    } catch (error) {
+      console.error(error);
+      alert("Couldn't enhance the image. Please try again.");
+    } finally {
+      setIsEnhancing(false);
+    }
   };
 
   return (
@@ -39,10 +87,22 @@ const App: React.FC = () => {
           <Generator onImageGenerated={handleImageGenerated} />
         )}
 
-        {view === AppView.EDITOR && currentImage && (
-          <Editor
-            initialImage={currentImage}
+        {view === AppView.PREVIEW && currentImageData && (
+          <Preview
+            imageUrl={currentImageUrl || currentImageData}
+            fileName={currentFileName}
             onBack={handleBackToGenerator}
+            onEdit={handleOpenEditor}
+            onEnhance={handleEnhanceDetail}
+            isEnhancing={isEnhancing}
+          />
+        )}
+
+        {view === AppView.EDITOR && currentImageData && (
+          <Editor
+            initialImage={currentImageData}
+            fileName={currentFileName}
+            onBack={handleBackToPreview}
           />
         )}
       </main>

@@ -13,6 +13,7 @@ const mockGenerateColoringPage = vi.mocked(generateColoringPage);
 afterEach(() => {
   cleanup();
   mockGenerateColoringPage.mockReset();
+  vi.restoreAllMocks();
 });
 
 describe('Generator', () => {
@@ -27,6 +28,7 @@ describe('Generator', () => {
   it('calls Gemini service and propagates the generated image', async () => {
     const onImageGenerated = vi.fn();
     mockGenerateColoringPage.mockResolvedValueOnce('data:image/png;base64,fake');
+    vi.spyOn(Date, 'now').mockReturnValue(1234567890);
 
     render(<Generator onImageGenerated={onImageGenerated} />);
 
@@ -45,7 +47,7 @@ describe('Generator', () => {
         'A dragon with balloons',
         undefined
       );
-      expect(onImageGenerated).toHaveBeenCalledWith('data:image/png;base64,fake');
+      expect(onImageGenerated).toHaveBeenCalledWith('data:image/png;base64,fake', 'a-dragon-with-balloons-1234567890.png');
     });
 
     expect(generateButton).not.toBeDisabled();

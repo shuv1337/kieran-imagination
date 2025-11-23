@@ -27,9 +27,15 @@ export const generateColoringPage = async (
   }
 
   // Engineering the prompt to ensure coloring page style
-  const fullPrompt = `Create a high-quality, black and white line art coloring page for children based on this description: "${prompt}". 
-  The image should have clean, thick distinct outlines, a pure white background, and NO grayscale shading or colors. 
-  It should be suitable for printing and coloring on 8.5x11 paper.`;
+  const fullPrompt = `Create a printable, black-and-white line art coloring page for children from this description: "${prompt}".
+  Hard requirements:
+  - Pure black ink on pure white paper only. NO colors, NO grayscale, NO shading.
+  - Clean, thick outlines with generous negative space for coloring.
+  - No photo textures, no gradients, no shadows.
+  - No frames, borders, wood tables, desks, or surfaces behind/around the art.
+  - No background scenery unless explicitly described; otherwise leave background white.
+  - Center the subject and keep everything inside the page margins.
+  Return only the coloring page image.`;
 
   parts.push({ text: fullPrompt });
 
@@ -45,9 +51,16 @@ export const generateColoringPage = async (
       }
     });
 
+    const candidate = response.candidates?.[0];
+    const finishReason = (candidate as any)?.finishReason;
+    const blockReason = (response as any)?.promptFeedback?.blockReason;
+    if (finishReason === 'SAFETY' || blockReason) {
+      throw new Error('SAFETY_BLOCKED');
+    }
+
     // Extract image
-    if (response.candidates && response.candidates[0] && response.candidates[0].content && response.candidates[0].content.parts) {
-      for (const part of response.candidates[0].content.parts) {
+    if (candidate && candidate.content && candidate.content.parts) {
+      for (const part of candidate.content.parts) {
         if (part.inlineData && part.inlineData.data) {
           return `data:${part.inlineData.mimeType || 'image/png'};base64,${part.inlineData.data}`;
         }
@@ -111,7 +124,7 @@ export const aiEditImage = async (
 export const aiUpscaleImage = async (currentImage: string): Promise<string> => {
   const model = 'gemini-3-pro-image-preview';
 
-  const fullPrompt = `Redraw this image in higher detail and higher quality. Maintain the exact same composition and subject, but make the lines crisper and cleaner. Ensure it remains black and white line art.`;
+  const fullPrompt = `Redraw this image in higher detail and higher quality. Maintain the exact same composition and subject, but add more subject matter details to the image. Ensure it remains black and white line art.`;
 
   const parts = [
     {
