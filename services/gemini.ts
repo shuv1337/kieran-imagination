@@ -1,6 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
 
-const apiKey = process.env.API_KEY || '';
+const apiKey = process.env.GEMINI_API_KEY || '';
 const ai = new GoogleGenAI({ apiKey });
 
 // Helper to strip the data:image/png;base64, prefix if needed, 
@@ -10,13 +10,13 @@ const getBase64FromUrl = (dataUrl: string): string => {
 };
 
 export const generateColoringPage = async (
-  prompt: string, 
+  prompt: string,
   referenceImage?: string
 ): Promise<string> => {
-  const model = 'gemini-2.5-flash-image';
-  
+  const model = 'gemini-3-pro-image-preview';
+
   const parts: any[] = [];
-  
+
   if (referenceImage) {
     parts.push({
       inlineData: {
@@ -36,8 +36,9 @@ export const generateColoringPage = async (
   try {
     const response = await ai.models.generateContent({
       model,
-      contents: { parts },
+      contents: parts,
       config: {
+        responseModalities: ['TEXT', 'IMAGE'],
         imageConfig: {
           aspectRatio: "3:4"
         }
@@ -52,7 +53,7 @@ export const generateColoringPage = async (
         }
       }
     }
-    
+
     throw new Error("No image generated.");
   } catch (error) {
     console.error("Gemini Generation Error:", error);
@@ -61,10 +62,10 @@ export const generateColoringPage = async (
 };
 
 export const aiEditImage = async (
-  currentImage: string, 
+  currentImage: string,
   instruction: string
 ): Promise<string> => {
-  const model = 'gemini-2.5-flash-image';
+  const model = 'gemini-3-pro-image-preview';
 
   // Construct prompt for editing
   const fullPrompt = `Edit the provided image with the following instruction: "${instruction}". 
@@ -84,8 +85,9 @@ export const aiEditImage = async (
   try {
     const response = await ai.models.generateContent({
       model,
-      contents: { parts },
+      contents: parts,
       config: {
+        responseModalities: ['TEXT', 'IMAGE'],
         imageConfig: {
           aspectRatio: "3:4"
         }
@@ -107,41 +109,42 @@ export const aiEditImage = async (
 };
 
 export const aiUpscaleImage = async (currentImage: string): Promise<string> => {
-    const model = 'gemini-2.5-flash-image';
+  const model = 'gemini-3-pro-image-preview';
 
-    const fullPrompt = `Redraw this image in higher detail and higher quality. Maintain the exact same composition and subject, but make the lines crisper and cleaner. Ensure it remains black and white line art.`;
+  const fullPrompt = `Redraw this image in higher detail and higher quality. Maintain the exact same composition and subject, but make the lines crisper and cleaner. Ensure it remains black and white line art.`;
 
-    const parts = [
-        {
-            inlineData: {
-                mimeType: 'image/png',
-                data: getBase64FromUrl(currentImage),
-            },
-        },
-        { text: fullPrompt },
-    ];
+  const parts = [
+    {
+      inlineData: {
+        mimeType: 'image/png',
+        data: getBase64FromUrl(currentImage),
+      },
+    },
+    { text: fullPrompt },
+  ];
 
-    try {
-        const response = await ai.models.generateContent({
-            model,
-            contents: { parts },
-            config: {
-                imageConfig: {
-                    aspectRatio: "3:4"
-                }
-            }
-        });
-
-        if (response.candidates && response.candidates[0].content.parts) {
-            for (const part of response.candidates[0].content.parts) {
-                if (part.inlineData && part.inlineData.data) {
-                    return `data:${part.inlineData.mimeType || 'image/png'};base64,${part.inlineData.data}`;
-                }
-            }
+  try {
+    const response = await ai.models.generateContent({
+      model,
+      contents: parts,
+      config: {
+        responseModalities: ['TEXT', 'IMAGE'],
+        imageConfig: {
+          aspectRatio: "3:4"
         }
-        throw new Error("No upscaled image returned.");
-    } catch (error) {
-        console.error("Gemini Upscale Error:", error);
-        throw error;
+      }
+    });
+
+    if (response.candidates && response.candidates[0].content.parts) {
+      for (const part of response.candidates[0].content.parts) {
+        if (part.inlineData && part.inlineData.data) {
+          return `data:${part.inlineData.mimeType || 'image/png'};base64,${part.inlineData.data}`;
+        }
+      }
     }
+    throw new Error("No upscaled image returned.");
+  } catch (error) {
+    console.error("Gemini Upscale Error:", error);
+    throw error;
+  }
 }

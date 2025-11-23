@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Generator } from './components/Generator';
 import { Editor } from './components/Editor';
 import { AppView } from './types';
+import kieranLogo from './kieran-logo.png';
 
 const App: React.FC = () => {
   const [view, setView] = useState<AppView>(AppView.GENERATOR);
@@ -22,10 +23,10 @@ const App: React.FC = () => {
       {view === AppView.GENERATOR && (
         <header className="p-8 flex items-center justify-center">
           <div className="flex items-center gap-4 text-[#7e57c2]">
-            <img 
-              src="https://api.dicebear.com/9.x/avataaars/svg?seed=Kieran&backgroundColor=b6e3f4" 
-              alt="Kieran's Imagination Logo" 
-              className="w-16 h-16 rounded-full border-2 border-[#7e57c2] shadow-lg shadow-[#7e57c2]/20" 
+            <img
+              src={kieranLogo}
+              alt="Kieran's Imagination Logo"
+              className="w-16 h-16 rounded-full border-2 border-[#7e57c2] shadow-lg shadow-[#7e57c2]/20"
             />
             <span className="text-4xl font-bold tracking-tight text-[#d6deeb]">Kieran's Imagination</span>
           </div>
@@ -37,19 +38,19 @@ const App: React.FC = () => {
         {view === AppView.GENERATOR && (
           <Generator onImageGenerated={handleImageGenerated} />
         )}
-        
+
         {view === AppView.EDITOR && currentImage && (
-          <Editor 
-            initialImage={currentImage} 
+          <Editor
+            initialImage={currentImage}
             onBack={handleBackToGenerator}
           />
         )}
       </main>
-      
+
       {view === AppView.GENERATOR && (
-          <footer className="p-6 text-center text-[#5f7e97] text-sm">
-            Powered by Gemini 2.5 Flash Image
-          </footer>
+        <footer className="p-6 text-center text-[#5f7e97] text-sm">
+          Powered by Gemini 3
+        </footer>
       )}
     </div>
   );

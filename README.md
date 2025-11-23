@@ -10,11 +10,12 @@ View your app in AI Studio: https://ai.studio/apps/drive/1dl_BlAvM6WXNkPTJ0mogx9
 
 ## Run Locally
 
-**Prerequisites:**  Node.js
-
+**Prerequisites:**  [Bun](https://bun.sh) (v1.3.3+)
 
 1. Install dependencies:
-   `npm install`
+   `bun install`
 2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
 3. Run the app:
-   `npm run dev`
+   `bun run dev`
+4. Run tests:
+   `bun run test`
