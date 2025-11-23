@@ -74,14 +74,14 @@ const App: React.FC = () => {
     <div className="min-h-screen flex flex-col font-sans text-[#d6deeb] bg-[#011627]">
       {/* Global Header */}
       {view === AppView.GENERATOR && (
-        <header className="p-8 flex items-center justify-center">
-          <div className="flex items-center gap-4 text-[#7e57c2]">
+        <header className="p-4 md:p-8 flex items-center justify-center">
+          <div className="flex items-center gap-3 md:gap-4 text-[#7e57c2]">
             <img
               src={kieranLogo}
               alt="Kieran's Imagination Logo"
-              className="w-16 h-16 rounded-full border-2 border-[#7e57c2] shadow-lg shadow-[#7e57c2]/20"
+              className="w-12 h-12 md:w-16 md:h-16 rounded-full border-2 border-[#7e57c2] shadow-lg shadow-[#7e57c2]/20"
             />
-            <span className="text-4xl font-bold tracking-tight text-[#d6deeb]">Kieran's Imagination</span>
+            <span className="text-2xl md:text-4xl font-bold tracking-tight text-[#d6deeb]">Kieran's Imagination</span>
           </div>
         </header>
       )}

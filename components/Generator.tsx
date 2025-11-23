@@ -70,9 +70,9 @@ export const Generator: React.FC<GeneratorProps> = ({ onImageGenerated }) => {
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto p-6 pt-12">
+    <div className="w-full max-w-4xl mx-auto p-6 pt-12 flex flex-col gap-12">
 
-      <div className="text-center mb-16">
+      <div className="text-center order-2 md:order-1">
         <h1 className="text-6xl font-bold text-[#d6deeb] mb-6 tracking-tight font-fredoka">
           Dream it. <span className="text-[#82AAFF]">Color it.</span>
         </h1>
@@ -82,7 +82,7 @@ export const Generator: React.FC<GeneratorProps> = ({ onImageGenerated }) => {
       </div>
 
       {/* Main Card - Using Night Owl 'input.background' (#0b253a) as surface for contrast against #011627 */}
-      <div className="bg-[#0b253a] rounded-3xl shadow-2xl shadow-[#011627]/50 p-8 border border-[#122d42]">
+      <div className="bg-[#0b253a] rounded-3xl shadow-2xl shadow-[#011627]/50 p-8 border border-[#122d42] order-1 md:order-2">
 
         <div className="space-y-8">
 
@@ -187,7 +187,7 @@ export const Generator: React.FC<GeneratorProps> = ({ onImageGenerated }) => {
       </div>
 
       {/* Features Grid */}
-      <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 order-3">
         <div className="flex items-center gap-4 p-5 bg-[#0b253a]/50 border border-[#122d42] rounded-2xl">
           <div className="p-3 bg-[#82AAFF]/10 text-[#82AAFF] rounded-xl">
             <ImageIcon size={24} />
