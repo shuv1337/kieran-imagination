@@ -1,0 +1,12 @@
+name = "kieran-imagination"
+compatibility_date = "2025-11-22"
+pages_build_output_dir = "dist"
+
+[[r2_buckets]]
+binding = "IMAGES_BUCKET"
+bucket_name = "kieran-images"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "kieran-db"
+database_id = "e62446bd-90a0-9402-2ef5-eaedccad646e" # Placeholder, needs real ID

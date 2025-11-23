@@ -24,12 +24,14 @@ const App: React.FC = () => {
     }
   };
 
-  const handleImageGenerated = (imageUrl: string, fileName: string) => {
+  const handleImageGenerated = (imageUrl: string, fileName: string, key?: string) => {
     setCurrentImageData(imageUrl);
     setCurrentImageUrl(null);
     setCurrentFileName(fileName);
     setView(AppView.PREVIEW);
-    void persistImage(imageUrl, fileName);
+    if (!key) {
+      void persistImage(imageUrl, fileName);
+    }
   };
 
   const handleBackToGenerator = () => {
@@ -53,10 +55,12 @@ const App: React.FC = () => {
         'Add more crisp black line art detail and small patterns to the existing shapes while keeping it a clean, printable black-and-white coloring page. Do not add shading, grayscale, colors, textures, frames, or backgrounds.'
       );
       const enhancedFileName = `${(currentFileName.replace(/\.png$/i, '') || 'kierans-art')}-enhanced.png`;
-      setCurrentImageData(enhanced);
+      setCurrentImageData(enhanced.url);
       setCurrentImageUrl(null);
       setCurrentFileName(enhancedFileName);
-      void persistImage(enhanced, enhancedFileName);
+      if (!enhanced.key) {
+        void persistImage(enhanced.url, enhancedFileName);
+      }
     } catch (error) {
       console.error(error);
       alert("Couldn't enhance the image. Please try again.");

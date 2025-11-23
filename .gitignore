@@ -26,3 +26,7 @@ dist-ssr
 # Generated assets
 public/generated/*
 !public/generated/.gitkeep
+
+# Cloudflare
+.dev.vars
+.wrangler
