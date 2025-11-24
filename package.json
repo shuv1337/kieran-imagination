@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "npx wrangler pages dev dist --ip 10.0.2.100 --port 3000",
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",

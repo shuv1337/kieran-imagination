@@ -14,8 +14,43 @@ export const Generator: React.FC<GeneratorProps> = ({ onImageGenerated }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [carouselIndex, setCarouselIndex] = useState(0);
+  const [elapsedTime, setElapsedTime] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const inputAreaRef = useRef<HTMLDivElement>(null);
+
+  // Progress stages with timing (typical generation takes 15-30s)
+  const progressStages = [
+    { threshold: 0, message: "Starting the magic...", progress: 5 },
+    { threshold: 3, message: "Imagining your idea...", progress: 15 },
+    { threshold: 6, message: "Sketching outlines...", progress: 30 },
+    { threshold: 10, message: "Adding details...", progress: 50 },
+    { threshold: 15, message: "Perfecting the lines...", progress: 70 },
+    { threshold: 20, message: "Almost ready...", progress: 85 },
+    { threshold: 25, message: "Final touches...", progress: 95 },
+  ];
+
+  const getCurrentStage = () => {
+    for (let i = progressStages.length - 1; i >= 0; i--) {
+      if (elapsedTime >= progressStages[i].threshold) {
+        return progressStages[i];
+      }
+    }
+    return progressStages[0];
+  };
+
+  // Timer for generation progress
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isGenerating) {
+      setElapsedTime(0);
+      interval = setInterval(() => {
+        setElapsedTime((prev) => prev + 1);
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isGenerating]);
 
   const scrollToInput = () => {
     inputAreaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -302,14 +337,26 @@ export const Generator: React.FC<GeneratorProps> = ({ onImageGenerated }) => {
                         )}
                     >
                         {isGenerating ? (
-                            <div className="flex items-center gap-3">
-                                <motion.div 
-                                    animate={{ rotate: 360 }}
-                                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                                >
-                                    <Wand2 size={32} className="text-yellow-300" />
-                                </motion.div>
-                                <span>Creating Magic...</span>
+                            <div className="flex flex-col items-center gap-2 w-full px-6">
+                                <div className="flex items-center gap-3">
+                                    <motion.div
+                                        animate={{ rotate: 360 }}
+                                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                                    >
+                                        <Wand2 size={28} className="text-yellow-300" />
+                                    </motion.div>
+                                    <span className="text-xl">{getCurrentStage().message}</span>
+                                    <span className="text-sm text-blue-200 font-mono">{elapsedTime}s</span>
+                                </div>
+                                {/* Progress bar */}
+                                <div className="w-full h-2 bg-white/20 rounded-full overflow-hidden">
+                                    <motion.div
+                                        className="h-full bg-gradient-to-r from-yellow-400 via-pink-400 to-purple-400"
+                                        initial={{ width: "0%" }}
+                                        animate={{ width: `${getCurrentStage().progress}%` }}
+                                        transition={{ duration: 0.5, ease: "easeOut" }}
+                                    />
+                                </div>
                             </div>
                         ) : (
                             <>
