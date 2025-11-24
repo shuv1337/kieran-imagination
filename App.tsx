@@ -95,7 +95,7 @@ const App: React.FC = () => {
               <img
                 src={kieranLogo}
                 alt="Kieran's Imagination Logo"
-                className="relative w-32 h-32 md:w-40 md:h-40 rounded-full border-4 border-white shadow-2xl z-10"
+                className="relative w-36 h-36 md:w-44 md:h-44 object-contain drop-shadow-2xl z-10"
               />
             </motion.div>
             <div className="flex flex-col items-center md:items-start relative">
@@ -185,7 +185,7 @@ const App: React.FC = () => {
 
       {view === AppView.GENERATOR && (
         <footer className="p-6 text-center text-slate-500 text-sm relative z-10">
-          <p>Powered by <span className="text-blue-400 font-bold">Gemini AI</span> • Made with 💖</p>
+          <p>Made by <span className="text-blue-400 font-bold"><a href="https://latitudes.io">Latitudes</a></span></p>
         </footer>
       )}
     </div>

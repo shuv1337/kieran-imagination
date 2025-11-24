@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { Upload, Sparkles, ArrowRight, Wand2, ImagePlus, X } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Upload, Sparkles, ArrowRight, Wand2, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { generateColoringPage } from '../services/gemini';
 import { clsx } from 'clsx';
@@ -13,7 +13,13 @@ export const Generator: React.FC<GeneratorProps> = ({ onImageGenerated }) => {
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [carouselIndex, setCarouselIndex] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const inputAreaRef = useRef<HTMLDivElement>(null);
+
+  const scrollToInput = () => {
+    inputAreaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 
   const suggestions = [
     '🦖 A T-Rex playing guitar',
@@ -41,9 +47,25 @@ export const Generator: React.FC<GeneratorProps> = ({ onImageGenerated }) => {
     return `${base}-${Date.now()}.png`;
   };
 
+  // Auto-rotate carousel on mobile
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCarouselIndex((prev) => (prev + 1) % suggestions.length);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [suggestions.length]);
+
   const handleLuckyPrompt = () => {
     const suggestion = suggestions[Math.floor(Math.random() * suggestions.length)];
     setPrompt(suggestion);
+  };
+
+  const nextSuggestion = () => {
+    setCarouselIndex((prev) => (prev + 1) % suggestions.length);
+  };
+
+  const prevSuggestion = () => {
+    setCarouselIndex((prev) => (prev - 1 + suggestions.length) % suggestions.length);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -88,7 +110,7 @@ export const Generator: React.FC<GeneratorProps> = ({ onImageGenerated }) => {
             animate={{ scale: 1, opacity: 1 }}
             transition={{ type: "spring", bounce: 0.5 }}
         >
-            <h1 className="text-6xl md:text-8xl font-comic text-white drop-shadow-[0_5px_0_rgba(0,0,0,0.5)]">
+            <h1 className="text-4xl md:text-8xl font-comic text-white drop-shadow-[0_5px_0_rgba(0,0,0,0.5)]">
             Dream it. <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-pink-500">Color it.</span>
             </h1>
         </motion.div>
@@ -96,18 +118,33 @@ export const Generator: React.FC<GeneratorProps> = ({ onImageGenerated }) => {
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.2 }}
-            className="text-xl md:text-2xl text-blue-200 font-medium max-w-2xl mx-auto"
+            className="text-lg md:text-2xl text-blue-200 font-medium max-w-2xl mx-auto"
         >
           Type any idea below and watch AI turn it into a coloring page!
         </motion.p>
+        
+        {/* Mobile CTA Button */}
+        <motion.button
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={scrollToInput}
+            className="md:hidden mt-4 px-8 py-4 bg-gradient-to-r from-yellow-400 via-orange-500 to-pink-500 rounded-full text-white text-xl font-comic font-bold shadow-lg shadow-orange-500/40 flex items-center justify-center gap-2 mx-auto"
+        >
+            <Sparkles size={24} className="text-yellow-100" />
+            Start Creating!
+            <ArrowRight size={24} />
+        </motion.button>
       </div>
 
       {/* Main Magic Card */}
       <motion.div 
+        ref={inputAreaRef}
         initial={{ y: 50, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.3 }}
-        className="relative bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-8 shadow-2xl ring-1 ring-white/20"
+        className="relative bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-6 md:p-8 shadow-2xl ring-1 ring-white/20 scroll-mt-4"
       >
         {/* Floating Orbs */}
         <div className="absolute -top-10 -left-10 w-32 h-32 bg-purple-500/30 rounded-full blur-3xl animate-pulse pointer-events-none"></div>
@@ -139,8 +176,45 @@ export const Generator: React.FC<GeneratorProps> = ({ onImageGenerated }) => {
                 </div>
             </div>
 
-            {/* Suggestions Cloud */}
-            <div className="flex flex-wrap gap-3 justify-center">
+            {/* Suggestions - Carousel on mobile, Cloud on desktop */}
+            {/* Mobile Carousel */}
+            <div className="md:hidden flex items-center gap-2 justify-center">
+                <motion.button
+                    whileTap={{ scale: 0.9 }}
+                    onClick={prevSuggestion}
+                    className="p-2 rounded-full bg-white/10 text-white/70 hover:bg-white/20 transition-colors"
+                >
+                    <ChevronLeft size={20} />
+                </motion.button>
+                
+                <div className="flex-1 overflow-hidden relative h-12">
+                    <AnimatePresence mode="wait">
+                        <motion.button
+                            key={carouselIndex}
+                            initial={{ opacity: 0, x: 50 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -50 }}
+                            transition={{ duration: 0.2 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => setPrompt(suggestions[carouselIndex].split(' ').slice(1).join(' '))}
+                            className="absolute inset-0 flex items-center justify-center px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full text-base text-blue-200 transition-colors backdrop-blur-sm"
+                        >
+                            {suggestions[carouselIndex]}
+                        </motion.button>
+                    </AnimatePresence>
+                </div>
+                
+                <motion.button
+                    whileTap={{ scale: 0.9 }}
+                    onClick={nextSuggestion}
+                    className="p-2 rounded-full bg-white/10 text-white/70 hover:bg-white/20 transition-colors"
+                >
+                    <ChevronRight size={20} />
+                </motion.button>
+            </div>
+            
+            {/* Desktop Cloud */}
+            <div className="hidden md:flex flex-wrap gap-3 justify-center">
                 {suggestions.slice(0, 5).map((s, i) => (
                     <motion.button
                         key={s}
@@ -149,7 +223,7 @@ export const Generator: React.FC<GeneratorProps> = ({ onImageGenerated }) => {
                         transition={{ delay: 0.5 + (i * 0.1) }}
                         whileHover={{ scale: 1.05, y: -2 }}
                         whileTap={{ scale: 0.95 }}
-                        onClick={() => setPrompt(s.split(' ').slice(1).join(' '))} // Remove emoji
+                        onClick={() => setPrompt(s.split(' ').slice(1).join(' '))}
                         className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full text-sm md:text-base text-blue-200 transition-colors backdrop-blur-sm"
                     >
                         {s}
@@ -157,18 +231,26 @@ export const Generator: React.FC<GeneratorProps> = ({ onImageGenerated }) => {
                 ))}
             </div>
 
-            <div className="flex flex-col md:flex-row gap-6 mt-4">
-                {/* Image Upload Zone */}
-                <div className="flex-1">
-                     <div 
+            <div className="flex flex-col md:flex-row gap-4 md:gap-6 mt-4">
+                {/* Image Upload Zone - More prominent on mobile */}
+                <div className="flex-1 order-first md:order-none">
+                     <motion.div 
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.4 }}
                         onClick={() => fileInputRef.current?.click()}
                         className={twMerge(
-                            "relative h-24 rounded-2xl border-2 border-dashed transition-all cursor-pointer overflow-hidden group flex items-center justify-center gap-4",
+                            "relative h-28 md:h-24 rounded-2xl border-2 border-dashed transition-all cursor-pointer overflow-hidden group flex items-center justify-center gap-4",
                             uploadedImage 
                                 ? "border-green-400 bg-green-400/10" 
-                                : "border-slate-600 hover:border-blue-400 hover:bg-slate-800/50"
+                                : "border-purple-400/60 md:border-slate-600 bg-purple-500/10 md:bg-transparent hover:border-purple-400 hover:bg-purple-500/20 md:hover:border-blue-400 md:hover:bg-slate-800/50"
                         )}
                      >
+                        {/* Subtle gradient border glow for mobile */}
+                        {!uploadedImage && (
+                            <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-500 via-pink-500 to-blue-500 rounded-2xl opacity-20 md:opacity-0 blur-sm pointer-events-none"></div>
+                        )}
+                        
                         <input
                             ref={fileInputRef}
                             type="file"
@@ -182,27 +264,27 @@ export const Generator: React.FC<GeneratorProps> = ({ onImageGenerated }) => {
                                 <img src={uploadedImage} alt="Ref" className="h-20 w-20 object-cover rounded-lg shadow-md" />
                                 <div className="flex flex-col">
                                     <span className="font-bold text-green-400">Photo Added!</span>
-                                    <span className="text-xs text-slate-400">Click to change</span>
+                                    <span className="text-xs text-slate-400">Tap to change</span>
                                 </div>
                                 <button 
                                     onClick={(e) => { e.stopPropagation(); setUploadedImage(null); }}
-                                    className="absolute top-2 right-2 p-1 bg-slate-900/50 rounded-full hover:bg-red-500/80 transition-colors"
+                                    className="absolute top-2 right-2 p-1.5 bg-slate-900/70 rounded-full hover:bg-red-500/80 transition-colors"
                                 >
-                                    <X size={16} />
+                                    <X size={18} />
                                 </button>
                             </>
                         ) : (
-                            <>
-                                <div className="p-3 bg-slate-800 rounded-xl group-hover:scale-110 transition-transform">
-                                    <ImagePlus className="text-blue-400" />
+                            <div className="relative z-10 flex items-center gap-4">
+                                <div className="p-3 md:p-3 bg-gradient-to-br from-purple-500/30 to-pink-500/30 md:bg-slate-800 rounded-xl group-hover:scale-110 transition-transform">
+                                    <Upload className="text-purple-300 md:text-blue-400" size={24} />
                                 </div>
                                 <div className="text-left">
-                                    <span className="block font-bold text-slate-300 group-hover:text-white">Use a Photo</span>
-                                    <span className="text-xs text-slate-500">Optional reference</span>
+                                    <span className="block font-bold text-lg md:text-base text-white md:text-slate-300 group-hover:text-white">Upload Your Photo</span>
+                                    <span className="text-sm md:text-xs text-purple-200 md:text-slate-500">Turn any picture into a coloring page!</span>
                                 </div>
-                            </>
+                            </div>
                         )}
-                     </div>
+                     </motion.div>
                 </div>
 
                 {/* BIG ACTION BUTTON */}
