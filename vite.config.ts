@@ -2,6 +2,7 @@ import path from 'path';
 import { promises as fsp } from 'fs';
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
+import { VitePWA } from 'vite-plugin-pwa';
 
 const generatedDir = path.resolve(__dirname, 'public', 'generated');
 
@@ -66,7 +67,34 @@ export default defineConfig(({ mode }) => {
       host: '0.0.0.0',
       allowedHosts: ['kier.shuv.app'],
     },
-    plugins: [react(), saveImageMiddleware()],
+    plugins: [
+      react(),
+      saveImageMiddleware(),
+      VitePWA({
+        registerType: 'autoUpdate',
+        includeAssets: ['favicon.ico', 'pwa-icon.png'],
+        manifest: {
+          name: "Kieran's Imagination",
+          short_name: "Kieran's App",
+          description: 'AI Image Generator for Kids',
+          theme_color: '#011627',
+          background_color: '#011627',
+          display: 'standalone',
+          icons: [
+            {
+              src: 'pwa-icon.png',
+              sizes: '192x192',
+              type: 'image/png'
+            },
+            {
+              src: 'pwa-icon.png',
+              sizes: '512x512',
+              type: 'image/png'
+            }
+          ]
+        }
+      })
+    ],
     define: {
       'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY)
     },
