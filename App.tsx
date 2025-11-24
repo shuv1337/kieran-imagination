@@ -79,7 +79,7 @@ const App: React.FC = () => {
             <img
               src={kieranLogo}
               alt="Kieran's Imagination Logo"
-              className="w-12 h-12 md:w-16 md:h-16 rounded-full border-2 border-[#7e57c2] shadow-lg shadow-[#7e57c2]/20"
+              className="w-24 h-24 md:w-32 md:h-32 rounded-full border-2 border-[#7e57c2] shadow-lg shadow-[#7e57c2]/20"
             />
             <span className="text-2xl md:text-4xl font-bold tracking-tight text-[#d6deeb]">Kieran's Imagination</span>
           </div>
