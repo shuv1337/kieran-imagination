@@ -6,42 +6,35 @@
     <meta name="theme-color" content="#011627" />
     <title>Kieran's Imagination</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Fredoka:wght@300;400;500;600;700&family=Quicksand:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
       body {
-        font-family: 'Fredoka', sans-serif;
-        background-color: #011627; /* Night Owl Background */
-        color: #d6deeb; /* Night Owl Foreground */
+        font-family: 'Quicksand', sans-serif;
+        background-color: #0f172a;
+        color: #f8fafc;
+        overflow-x: hidden;
       }
-      /* Custom scrollbar for a cleaner look */
-      ::-webkit-scrollbar {
-        width: 8px;
-        height: 8px;
-      }
-      ::-webkit-scrollbar-track {
-        background: #011627;
-      }
-      ::-webkit-scrollbar-thumb {
-        background: #234d70; /* list.activeSelectionBackground */
-        border-radius: 4px;
-      }
-      ::-webkit-scrollbar-thumb:hover {
-        background: #5f7e97;
+      
+      h1, h2, h3, .font-comic {
+        font-family: 'Bangers', cursive;
+        letter-spacing: 0.05em;
       }
 
-      /* Magic Loader Animation */
-      @keyframes spin {
-        to { transform: rotate(360deg); }
+      /* Custom scrollbar */
+      ::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
       }
-      .magic-loader {
-        width: 28px;
-        height: 28px;
-        border-radius: 50%;
-        background: conic-gradient(#82AAFF, #c792ea, #addb67, #82AAFF);
-        -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #fff 0);
-        mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #fff 0);
-        animation: spin 1s linear infinite;
-        filter: drop-shadow(0 0 4px rgba(130, 170, 255, 0.5));
+      ::-webkit-scrollbar-track {
+        background: #0f172a;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #3b82f6;
+        border-radius: 5px;
+        border: 2px solid #0f172a;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #60a5fa;
       }
     </style>
   <script type="importmap">

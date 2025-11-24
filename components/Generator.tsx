@@ -1,6 +1,9 @@
-import React, { useState } from 'react';
-import { Upload, Sparkles, Image as ImageIcon, ArrowRight } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { Upload, Sparkles, ArrowRight, Wand2, ImagePlus, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { generateColoringPage } from '../services/gemini';
+import { clsx } from 'clsx';
+import { twMerge } from 'tailwind-merge';
 
 interface GeneratorProps {
   onImageGenerated: (imageUrl: string, fileName: string, key?: string, publicUrl?: string) => void;
@@ -10,70 +13,19 @@ export const Generator: React.FC<GeneratorProps> = ({ onImageGenerated }) => {
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const suggestions = [
-    'A dragon teaching penguins how to snowboard under the northern lights',
-    'A cozy treehouse library with floating lanterns and a sleepy cat',
-    'A robot dinosaur playing soccer on Mars with alien spectators',
-    'A pirate ship sailing across clouds made of cotton candy',
-    'A space otter astronaut watering a tiny moon garden',
-    'A magical forest where the mushrooms are houses for fairies',
-    'A group of hamsters having a tea party in a dollhouse',
-    'A superhero dog saving a city made of building blocks',
-    'A friendly monster baking cookies in a volcano kitchen',
-    'A mermaid riding a seahorse through a coral reef city',
-    'A castle made entirely of ice cream and candy',
-    'A detective owl solving a mystery in a forest library',
-    'A race car driving on a track made of rainbows',
-    'A family of bears having a picnic on the moon',
-    'A wizard cat casting spells on balls of yarn',
-    'A submarine exploring an underwater city of glowing jellyfish',
-    'A giant turtle carrying an island on its back',
-    'A squirrel knight defending a castle of acorns',
-    'A band of frogs playing instruments on lily pads',
-    'A train traveling through a tunnel of stars',
-    'A robot helping a gardener plant giant sunflowers',
-    'A unicorn galloping through a field of crystal flowers',
-    'A fox and a rabbit sharing a campfire story',
-    'A city in the clouds with flying boats',
-    'A baby elephant painting a masterpiece with its trunk',
-    'A lighthouse guiding ships in a sea of stars',
-    'A baker making a cake as tall as a skyscraper',
-    'A group of penguins building a snow fort',
-    'A time-traveling bicycle with wings',
-    'A secret garden hidden inside a giant book',
-    'A koala dj spinning records at a jungle party',
-    'A sloth racing a snail on a branch',
-    'A giraffe wearing a scarf and reading a newspaper',
-    'A jellyfish wizard stirring potions in an underwater cauldron',
-    'A baby dragon rolling cookie dough with a rolling pin twice its size',
-    'A panda astronaut planting a flag on a giant floating donut planet',
-    'A mouse chef making tiny pizzas in an acorn oven',
-    'A camel exploring a desert made of giant hourglasses',
-    'A kangaroo mail carrier delivering letters to cloud houses',
-    'A chameleon painting a rainbow mural with its tail',
-    'A family of owls flying kites made of leaves',
-    'A friendly yeti roasting marshmallows in a snowy cave',
-    'A squirrel scientist studying glowing acorns in a forest lab',
-    'A whale floating through the sky carrying hot-air balloons',
-    'A pair of raccoons running a cozy bakery at midnight',
-    'A cactus cowboy riding a broomstick horse across the desert',
-    'A wolf librarian shelving books in a magical moonlit archive',
-    'A snail explorer navigating a maze of giant flowers',
-    'A rabbit pilot flying a carrot-shaped airplane',
-    'A tiny dragon curled up inside a teacup castle',
-    'A family of turtles building sandcastles shaped like ancient ruins',
-    'A robot cat tending to a garden of neon plants',
-    'A fox detective following glowing footprints through a foggy village',
-    'A polar bear sculpting ice statues under a rainbow sun',
-    'A hedgehog barista serving tiny mugs of cocoa in a forest café',
-    'A goat wizard brewing clouds into potions on a mountaintop',
-    'A bee orchestra performing on honeycomb stages',
-    'A hippo painter creating murals on floating bubbles',
-    'A wizard frog teaching magic to tadpoles in a lily-pad classroom',
-    'A space whale towing a constellation like a glowing net',
-    'A family of ducks camping beside a river of sparkling stars',
-    'A bear astronaut discovering a candy-planet meteor shower',
-    'A fox riding a bicycle through a town filled with giant origami animals',
+    '🦖 A T-Rex playing guitar',
+    '🏰 A castle in the clouds',
+    '🚀 A hamster astronaut',
+    '🧙‍♂️ A wizard cat',
+    '🦄 A rainbow unicorn',
+    '🐙 A drummer octopus',
+    '🏎️ A race car made of candy',
+    '🧜‍♀️ A mermaid tea party',
+    '🐉 A friendly dragon chef',
+    '🤖 A robot building a snowman'
   ];
 
   const createFileName = (description: string) => {
@@ -119,7 +71,7 @@ export const Generator: React.FC<GeneratorProps> = ({ onImageGenerated }) => {
       console.error(error);
       const message =
         error instanceof Error && error.message === 'SAFETY_BLOCKED'
-          ? "The AI couldn't create that because the prompt triggered content restrictions. Please try a kid-friendly idea and avoid sensitive details."
+          ? "The AI couldn't create that because the prompt triggered content restrictions. Please try a kid-friendly idea!"
           : "Oops! Something went wrong generating the image. Please try again.";
       alert(message);
     } finally {
@@ -128,164 +80,169 @@ export const Generator: React.FC<GeneratorProps> = ({ onImageGenerated }) => {
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto p-6 pt-2 flex flex-col gap-6">
+    <div className="w-full max-w-5xl mx-auto p-6 flex flex-col gap-8">
 
-      <div className="text-center order-1 md:order-1">
-        <h1 className="text-6xl font-bold text-[#d6deeb] tracking-tight font-fredoka">
-          Dream it. <span className="text-[#82AAFF]">Color it.</span>
-        </h1>
+      <div className="text-center space-y-4 relative">
+        <motion.div
+            initial={{ scale: 0.5, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: "spring", bounce: 0.5 }}
+        >
+            <h1 className="text-6xl md:text-8xl font-comic text-white drop-shadow-[0_5px_0_rgba(0,0,0,0.5)]">
+            Dream it. <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-pink-500">Color it.</span>
+            </h1>
+        </motion.div>
+        <motion.p 
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="text-xl md:text-2xl text-blue-200 font-medium max-w-2xl mx-auto"
+        >
+          Type any idea below and watch AI turn it into a coloring page!
+        </motion.p>
       </div>
 
-      <div className="text-center order-3 md:order-2 md:mb-10">
-        <p className="text-xl text-[#5f7e97] max-w-2xl mx-auto">
-          Enter Kieran's Imagination. Use AI to turn your wildest ideas or photos into amazing coloring pages instantly.
-        </p>
-      </div>
+      {/* Main Magic Card */}
+      <motion.div 
+        initial={{ y: 50, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.3 }}
+        className="relative bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-8 shadow-2xl ring-1 ring-white/20"
+      >
+        {/* Floating Orbs */}
+        <div className="absolute -top-10 -left-10 w-32 h-32 bg-purple-500/30 rounded-full blur-3xl animate-pulse pointer-events-none"></div>
+        <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-blue-500/30 rounded-full blur-3xl animate-pulse pointer-events-none"></div>
 
-      {/* Main Card - Using Night Owl 'input.background' (#0b253a) as surface for contrast against #011627 */}
-      <div className="bg-[#0b253a] rounded-3xl shadow-2xl shadow-[#011627]/50 p-8 border border-[#122d42] order-2 md:order-3">
-
-        <div className="space-y-8">
-
-          <div>
-            <label className="block text-sm font-bold text-[#82AAFF] mb-2 uppercase tracking-wide">
-              What do you want to create?
-            </label>
-            <div className="relative">
-              {/* Input using input background and border colors */}
-              <textarea
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                placeholder="E.g., A robot dinosaur playing soccer on Mars..."
-                className="w-full p-5 text-lg bg-[#011627] border-2 border-[#5f7e97] text-[#d6deeb] rounded-2xl focus:border-[#82AAFF] focus:ring-0 transition-all outline-none resize-none h-36 placeholder-[#5f7e97]/50"
-              />
-              <button
-                type="button"
-                onClick={handleLuckyPrompt}
-                className="absolute bottom-4 right-4 text-[#82AAFF] hover:text-white bg-[#0b253a] border border-[#234d70] rounded-full p-2 shadow-md shadow-[#011627]/50 transition-all hover:-translate-y-0.5"
-                title="I'm feeling lucky"
-              >
-                <Sparkles size={20} />
-              </button>
-            </div>
-          </div>
-
-          <div className="flex flex-col md:flex-row gap-6">
-
-            {/* Image Upload */}
-            <div className="flex-1">
-              <label className="block text-sm font-bold text-[#82AAFF] mb-2 uppercase tracking-wide">
-                Use a Photo (Optional)
-              </label>
-              <div className="relative group h-[88px]">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileChange}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                />
-                <div className={`h-full border-2 border-dashed rounded-2xl px-4 flex items-center gap-4 transition-all ${uploadedImage ? 'border-[#82AAFF] bg-[#234d70]/30' : 'border-[#5f7e97] bg-[#011627] group-hover:border-[#82AAFF]'}`}>
-                  {uploadedImage ? (
-                    <>
-                      <div className="w-14 h-14 rounded-lg overflow-hidden bg-[#0b253a] shadow-sm shrink-0">
-                        <img src={uploadedImage} alt="Reference" className="w-full h-full object-cover" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-[#d6deeb] truncate">Photo added!</p>
-                        <p className="text-xs text-[#5f7e97]">Click to replace</p>
-                      </div>
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          setUploadedImage(null);
-                        }}
-                        className="z-20 p-2 text-[#5f7e97] hover:text-[#EF5350]"
-                      >
-                        x
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <div className="w-10 h-10 rounded-full bg-[#0b253a] flex items-center justify-center text-[#5f7e97]">
-                        <Upload size={20} />
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold text-[#d6deeb]">Upload Reference</p>
-                        <p className="text-xs text-[#5f7e97]">Use a photo as a base</p>
-                      </div>
-                    </>
-                  )}
+        <div className="flex flex-col gap-6 relative z-10">
+            
+            {/* Prompt Input Area */}
+            <div className="relative group">
+                <div className="absolute -inset-1 bg-gradient-to-r from-pink-500 via-purple-500 to-cyan-500 rounded-3xl blur opacity-20 group-hover:opacity-60 transition duration-500"></div>
+                <div className="relative bg-slate-900 rounded-2xl overflow-hidden border border-slate-700 group-focus-within:border-purple-400 transition-colors">
+                    <textarea
+                        value={prompt}
+                        onChange={(e) => setPrompt(e.target.value)}
+                        placeholder="I want a coloring page of..."
+                        className="w-full p-6 text-2xl md:text-4xl bg-transparent text-white placeholder-slate-600 focus:outline-none resize-none h-48 font-bold font-comic leading-tight"
+                    />
+                    
+                    {/* Lucky Button */}
+                    <motion.button
+                        whileHover={{ scale: 1.1, rotate: 5 }}
+                        whileTap={{ scale: 0.9 }}
+                        onClick={handleLuckyPrompt}
+                        className="absolute bottom-4 right-4 px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full text-white font-bold flex items-center gap-2 shadow-lg hover:shadow-purple-500/50 transition-all"
+                    >
+                        <Sparkles size={18} className="text-yellow-300" />
+                        I'm Feeling Lucky!
+                    </motion.button>
                 </div>
-              </div>
             </div>
 
-            {/* Action Button - Using Night Owl Button Color #7e57c2 */}
-            <div className="flex-1">
-              <label className="block text-sm font-bold text-transparent mb-2 uppercase tracking-wide select-none">
-                Action
-              </label>
-              <button
-                onClick={handleGenerate}
-                disabled={isGenerating || (!prompt && !uploadedImage)}
-                className="w-full h-[88px] bg-[#7e57c2] hover:bg-[#6c4ba6] disabled:bg-[#234d70] disabled:text-[#5f7e97] disabled:cursor-not-allowed text-white text-xl font-bold rounded-2xl shadow-lg hover:shadow-[#7e57c2]/25 hover:-translate-y-1 transition-all flex items-center justify-center gap-3"
-              >
-                {isGenerating ? (
-                  <>
-                    <div className="magic-loader"></div>
-                    Creating Magic... (~30-45s)
-                  </>
-                ) : (
-                  <>
-                    Generate Page <ArrowRight size={24} />
-                  </>
-                )}
-              </button>
+            {/* Suggestions Cloud */}
+            <div className="flex flex-wrap gap-3 justify-center">
+                {suggestions.slice(0, 5).map((s, i) => (
+                    <motion.button
+                        key={s}
+                        initial={{ opacity: 0, scale: 0 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: 0.5 + (i * 0.1) }}
+                        whileHover={{ scale: 1.05, y: -2 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => setPrompt(s.split(' ').slice(1).join(' '))} // Remove emoji
+                        className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full text-sm md:text-base text-blue-200 transition-colors backdrop-blur-sm"
+                    >
+                        {s}
+                    </motion.button>
+                ))}
+            </div>
 
-              {isGenerating && (
-                <div className="mt-4 p-4 bg-[#0b253a]/80 border border-[#82AAFF]/30 rounded-xl flex items-center gap-3 animate-pulse">
-                  <Sparkles className="text-[#c792ea] shrink-0" size={20} />
-                  <p className="text-[#d6deeb] text-sm">
-                    <span className="font-bold text-[#82AAFF]">Please wait!</span> Generating high-quality line art takes about 30-45 seconds. We're drawing every detail...
-                  </p>
+            <div className="flex flex-col md:flex-row gap-6 mt-4">
+                {/* Image Upload Zone */}
+                <div className="flex-1">
+                     <div 
+                        onClick={() => fileInputRef.current?.click()}
+                        className={twMerge(
+                            "relative h-24 rounded-2xl border-2 border-dashed transition-all cursor-pointer overflow-hidden group flex items-center justify-center gap-4",
+                            uploadedImage 
+                                ? "border-green-400 bg-green-400/10" 
+                                : "border-slate-600 hover:border-blue-400 hover:bg-slate-800/50"
+                        )}
+                     >
+                        <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept="image/*"
+                            onChange={handleFileChange}
+                            className="hidden"
+                        />
+                        
+                        {uploadedImage ? (
+                            <>
+                                <img src={uploadedImage} alt="Ref" className="h-20 w-20 object-cover rounded-lg shadow-md" />
+                                <div className="flex flex-col">
+                                    <span className="font-bold text-green-400">Photo Added!</span>
+                                    <span className="text-xs text-slate-400">Click to change</span>
+                                </div>
+                                <button 
+                                    onClick={(e) => { e.stopPropagation(); setUploadedImage(null); }}
+                                    className="absolute top-2 right-2 p-1 bg-slate-900/50 rounded-full hover:bg-red-500/80 transition-colors"
+                                >
+                                    <X size={16} />
+                                </button>
+                            </>
+                        ) : (
+                            <>
+                                <div className="p-3 bg-slate-800 rounded-xl group-hover:scale-110 transition-transform">
+                                    <ImagePlus className="text-blue-400" />
+                                </div>
+                                <div className="text-left">
+                                    <span className="block font-bold text-slate-300 group-hover:text-white">Use a Photo</span>
+                                    <span className="text-xs text-slate-500">Optional reference</span>
+                                </div>
+                            </>
+                        )}
+                     </div>
                 </div>
-              )}
+
+                {/* BIG ACTION BUTTON */}
+                <div className="flex-[2]">
+                    <motion.button
+                        onClick={handleGenerate}
+                        disabled={isGenerating || (!prompt && !uploadedImage)}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        className={twMerge(
+                            "w-full h-24 rounded-2xl text-2xl md:text-3xl font-comic font-bold tracking-wide shadow-xl flex items-center justify-center gap-4 relative overflow-hidden transition-all",
+                            (!prompt && !uploadedImage) 
+                                ? "bg-slate-800 text-slate-600 cursor-not-allowed"
+                                : "bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white hover:shadow-indigo-500/50"
+                        )}
+                    >
+                        {isGenerating ? (
+                            <div className="flex items-center gap-3">
+                                <motion.div 
+                                    animate={{ rotate: 360 }}
+                                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                                >
+                                    <Wand2 size={32} className="text-yellow-300" />
+                                </motion.div>
+                                <span>Creating Magic...</span>
+                            </div>
+                        ) : (
+                            <>
+                                <span>Generate Page</span>
+                                <ArrowRight size={32} className="group-hover:translate-x-2 transition-transform" />
+                                {/* Shine effect */}
+                                <div className="absolute top-0 -inset-full h-full w-1/2 z-5 block transform -skew-x-12 bg-gradient-to-r from-transparent to-white opacity-20 group-hover:animate-shine" />
+                            </>
+                        )}
+                    </motion.button>
+                </div>
             </div>
+        </div>
+      </motion.div>
 
-          </div>
-
-        </div>
-      </div>
-
-      {/* Features Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 order-4 md:order-4 md:mt-10">
-        <div className="flex items-center gap-4 p-5 bg-[#0b253a]/50 border border-[#122d42] rounded-2xl">
-          <div className="p-3 bg-[#82AAFF]/10 text-[#82AAFF] rounded-xl">
-            <ImageIcon size={24} />
-          </div>
-          <div>
-            <h3 className="font-bold text-[#d6deeb]">Clean Line Art</h3>
-            <p className="text-xs text-[#5f7e97]">Optimized for printing</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-4 p-5 bg-[#0b253a]/50 border border-[#122d42] rounded-2xl">
-          <div className="p-3 bg-[#c792ea]/10 text-[#c792ea] rounded-xl">
-            <Sparkles size={24} />
-          </div>
-          <div>
-            <h3 className="font-bold text-[#d6deeb]">AI Editing</h3>
-            <p className="text-xs text-[#5f7e97]">Modify with simple text</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-4 p-5 bg-[#0b253a]/50 border border-[#122d42] rounded-2xl">
-          <div className="p-3 bg-[#ffeb95]/10 text-[#ffeb95] rounded-xl">
-            <Upload size={24} />
-          </div>
-          <div>
-            <h3 className="font-bold text-[#d6deeb]">Photo to Coloring Page</h3>
-            <p className="text-xs text-[#5f7e97]">Convert memories to art</p>
-          </div>
-        </div>
-      </div>
     </div>
   );
 };

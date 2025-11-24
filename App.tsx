@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Generator } from './components/Generator';
 import { Editor } from './components/Editor';
 import { Preview } from './components/Preview';
+import Background from './components/Background';
 import { AppView } from './types';
 import kieranLogo from './kieran-logo.png';
 import { aiEditImage } from './services/gemini';
@@ -71,50 +73,119 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col font-sans text-[#d6deeb] bg-[#011627]">
+    <div className="min-h-screen flex flex-col font-sans text-slate-100 relative overflow-hidden">
+      <Background />
+      
       {/* Global Header */}
-      {view === AppView.GENERATOR && (
-        <header className="p-4 md:p-8 flex items-center justify-center">
-          <div className="flex items-center gap-3 md:gap-4 text-[#7e57c2]">
-            <img
-              src={kieranLogo}
-              alt="Kieran's Imagination Logo"
-              className="w-24 h-24 md:w-32 md:h-32 rounded-full border-2 border-[#7e57c2] shadow-lg shadow-[#7e57c2]/20"
-            />
-            <span className="text-2xl md:text-4xl font-bold tracking-tight text-[#d6deeb]">Kieran's Imagination</span>
-          </div>
-        </header>
-      )}
+      <AnimatePresence>
+        {view === AppView.GENERATOR && (
+          <motion.header 
+            initial={{ y: -100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: -100, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 100 }}
+            className="p-6 md:p-10 flex flex-col md:flex-row items-center justify-center gap-6 md:gap-8 z-10"
+          >
+            <motion.div 
+              className="relative group cursor-pointer"
+              whileHover={{ scale: 1.1, rotate: 5 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <div className="absolute -inset-4 bg-gradient-to-r from-red-500 via-yellow-500 to-blue-500 rounded-full blur-lg opacity-60 group-hover:opacity-100 animate-pulse"></div>
+              <img
+                src={kieranLogo}
+                alt="Kieran's Imagination Logo"
+                className="relative w-32 h-32 md:w-40 md:h-40 rounded-full border-4 border-white shadow-2xl z-10"
+              />
+            </motion.div>
+            <div className="flex flex-col items-center md:items-start relative">
+              <motion.span 
+                initial={{ x: -50, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                transition={{ delay: 0.2 }}
+                className="text-5xl md:text-7xl font-comic text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-orange-500 drop-shadow-[0_4px_0_rgba(0,0,0,0.5)] transform -rotate-2"
+              >
+                Kieran's
+              </motion.span>
+              <motion.span 
+                initial={{ x: 50, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                transition={{ delay: 0.3 }}
+                className="text-6xl md:text-8xl font-comic text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 drop-shadow-[0_4px_0_rgba(0,0,0,0.5)] -mt-2 md:-mt-4 transform rotate-1"
+              >
+                Imagination
+              </motion.span>
+              
+              {/* Decorative elements */}
+              <motion.div 
+                animate={{ rotate: 360 }} 
+                transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                className="absolute -top-8 -right-8 text-yellow-400 text-4xl"
+              >
+                ✨
+              </motion.div>
+            </div>
+          </motion.header>
+        )}
+      </AnimatePresence>
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col">
-        {view === AppView.GENERATOR && (
-          <Generator onImageGenerated={handleImageGenerated} />
-        )}
+      <main className="flex-1 flex flex-col z-10 relative">
+        <AnimatePresence mode="wait">
+          {view === AppView.GENERATOR && (
+            <motion.div
+              key="generator"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 1.1, filter: "blur(10px)" }}
+              transition={{ duration: 0.5 }}
+              className="flex-1 w-full"
+            >
+              <Generator onImageGenerated={handleImageGenerated} />
+            </motion.div>
+          )}
 
-        {view === AppView.PREVIEW && currentImageData && (
-          <Preview
-            imageUrl={currentImageUrl || currentImageData}
-            fileName={currentFileName}
-            onBack={handleBackToGenerator}
-            onEdit={handleOpenEditor}
-            onEnhance={handleEnhanceDetail}
-            isEnhancing={isEnhancing}
-          />
-        )}
+          {view === AppView.PREVIEW && currentImageData && (
+            <motion.div
+              key="preview"
+              initial={{ opacity: 0, x: 100 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -100 }}
+              transition={{ type: "spring", damping: 20 }}
+              className="flex-1 flex flex-col"
+            >
+              <Preview
+                imageUrl={currentImageUrl || currentImageData}
+                fileName={currentFileName}
+                onBack={handleBackToGenerator}
+                onEdit={handleOpenEditor}
+                onEnhance={handleEnhanceDetail}
+                isEnhancing={isEnhancing}
+              />
+            </motion.div>
+          )}
 
-        {view === AppView.EDITOR && currentImageData && (
-          <Editor
-            initialImage={currentImageData}
-            fileName={currentFileName}
-            onBack={handleBackToPreview}
-          />
-        )}
+          {view === AppView.EDITOR && currentImageData && (
+            <motion.div
+              key="editor"
+              initial={{ opacity: 0, y: 50 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 50 }}
+              className="flex-1 flex flex-col"
+            >
+              <Editor
+                initialImage={currentImageData}
+                fileName={currentFileName}
+                onBack={handleBackToPreview}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </main>
 
       {view === AppView.GENERATOR && (
-        <footer className="p-6 text-center text-[#5f7e97] text-sm">
-          Powered by Gemini 3
+        <footer className="p-6 text-center text-slate-500 text-sm relative z-10">
+          <p>Powered by <span className="text-blue-400 font-bold">Gemini AI</span> • Made with 💖</p>
         </footer>
       )}
     </div>
