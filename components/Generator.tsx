@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Upload, Sparkles, ArrowRight, Wand2, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { generateColoringPage } from '../services/gemini';
-import { clsx } from 'clsx';
+import { generateColoringPage, fetchSuggestions } from '../services/gemini';
+
 import { twMerge } from 'tailwind-merge';
 
 interface GeneratorProps {
@@ -15,6 +15,14 @@ export const Generator: React.FC<GeneratorProps> = ({ onImageGenerated }) => {
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [carouselIndex, setCarouselIndex] = useState(0);
   const [elapsedTime, setElapsedTime] = useState(0);
+  const [suggestions, setSuggestions] = useState<string[]>([
+    '🦖 A T-Rex playing guitar',
+    '🏰 A castle in the clouds',
+    '🚀 A hamster astronaut',
+    '🧙‍♂️ A wizard cat',
+    '🦄 A rainbow unicorn',
+  ]);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const inputAreaRef = useRef<HTMLDivElement>(null);
 
@@ -56,18 +64,7 @@ export const Generator: React.FC<GeneratorProps> = ({ onImageGenerated }) => {
     inputAreaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  const suggestions = [
-    '🦖 A T-Rex playing guitar',
-    '🏰 A castle in the clouds',
-    '🚀 A hamster astronaut',
-    '🧙‍♂️ A wizard cat',
-    '🦄 A rainbow unicorn',
-    '🐙 A drummer octopus',
-    '🏎️ A race car made of candy',
-    '🧜‍♀️ A mermaid tea party',
-    '🐉 A friendly dragon chef',
-    '🤖 A robot building a snowman'
-  ];
+
 
   const createFileName = (description: string) => {
     const cleaned = description
@@ -90,9 +87,31 @@ export const Generator: React.FC<GeneratorProps> = ({ onImageGenerated }) => {
     return () => clearInterval(interval);
   }, [suggestions.length]);
 
-  const handleLuckyPrompt = () => {
+  const loadSuggestions = async () => {
+    if (isLoadingSuggestions) return;
+    setIsLoadingSuggestions(true);
+    try {
+      const newSuggestions = await fetchSuggestions();
+      setSuggestions(newSuggestions);
+      setCarouselIndex(0);
+    } catch (error) {
+      console.error('Failed to load suggestions:', error);
+    } finally {
+      setIsLoadingSuggestions(false);
+    }
+  };
+
+  // Load fresh suggestions on mount
+  useEffect(() => {
+    loadSuggestions();
+  }, []);
+
+  const handleLuckyPrompt = async () => {
+    // Pick a random suggestion from current list
     const suggestion = suggestions[Math.floor(Math.random() * suggestions.length)];
     setPrompt(suggestion);
+    // Fetch new suggestions in background for next time
+    loadSuggestions();
   };
 
   const nextSuggestion = () => {

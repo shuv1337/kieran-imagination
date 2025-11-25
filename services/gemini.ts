@@ -54,3 +54,14 @@ export const aiUpscaleImage = async (currentImage: string): Promise<GeneratedIma
 
   return response.json();
 };
+
+export const fetchSuggestions = async (): Promise<string[]> => {
+  const response = await fetch('/api/suggestions');
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch suggestions');
+  }
+
+  const data = await response.json();
+  return data.suggestions;
+};
