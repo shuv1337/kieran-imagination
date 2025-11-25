@@ -33,7 +33,7 @@ export class HttpError extends Error {
 }
 
 export const MAX_PROMPT_LENGTH = 1000;
-export const MAX_BASE64_BYTES = 2 * 1024 * 1024; // 2MB
+export const MAX_BASE64_BYTES = 10 * 1024 * 1024; // 10MB
 
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX_REQUESTS = 20;
