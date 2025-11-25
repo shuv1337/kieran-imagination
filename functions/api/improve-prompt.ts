@@ -5,14 +5,16 @@ import {
     getClientIp,
     jsonResponse,
     logError,
+    logLLMRequest,
     MAX_PROMPT_LENGTH,
 } from "../utils";
 
 interface Env {
     GEMINI_API_KEY: string;
+    DB: D1Database;
 }
 
-export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
+export const onRequestPost: PagesFunction<Env> = async ({ request, env, waitUntil }) => {
     const requestId = crypto.randomUUID();
     const ip = getClientIp(request);
 
@@ -58,6 +60,7 @@ Examples:
 
 Only respond with the improved prompt text, nothing else. Do not include quotes around your response.`;
 
+        const llmStartTime = Date.now();
         const response = await ai.models.generateContent({
             model,
             contents: [
@@ -69,13 +72,33 @@ Only respond with the improved prompt text, nothing else. Do not include quotes 
                 temperature: 0.7,
             }
         });
+        const llmDuration = Date.now() - llmStartTime;
 
         const candidate = response.candidates?.[0];
         const improvedPrompt = candidate?.content?.parts?.[0]?.text?.trim();
 
         if (!improvedPrompt) {
+            waitUntil(logLLMRequest(env, request, {
+                requestType: 'improve-prompt',
+                model,
+                prompt,
+                durationMs: llmDuration,
+                success: false,
+                errorMessage: 'Failed to improve prompt'
+            }));
             throw new HttpError(502, "Failed to improve prompt");
         }
+
+        const usageMetadata = response.usageMetadata;
+        waitUntil(logLLMRequest(env, request, {
+            requestType: 'improve-prompt',
+            model,
+            prompt,
+            durationMs: llmDuration,
+            success: true,
+            inputTokens: usageMetadata?.promptTokenCount,
+            outputTokens: usageMetadata?.candidatesTokenCount
+        }));
 
         return jsonResponse({ improvedPrompt });
 

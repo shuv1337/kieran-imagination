@@ -1,5 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
-import { HttpError, enforceRateLimit, getClientIp, jsonResponse, logError, logRequest } from "../utils";
+import { HttpError, enforceRateLimit, getClientIp, jsonResponse, logError, logLLMRequest, logRequest } from "../utils";
 
 interface Env {
     GEMINI_API_KEY: string;
@@ -29,6 +29,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env, waitUntil
         const ai = new GoogleGenAI({ apiKey: env.GEMINI_API_KEY });
         const model = 'gemini-2.0-flash';
 
+        const llmStartTime = Date.now();
         const response = await ai.models.generateContent({
             model,
             contents: `Generate 5 fun, creative, and kid-friendly coloring page ideas. Each should be imaginative and appealing to children ages 4-10.
@@ -44,20 +45,23 @@ Be creative and varied! Mix animals, fantasy, vehicles, food, nature, and silly 
 
 Return ONLY the JSON array, no other text.`,
         });
+        const llmDuration = Date.now() - llmStartTime;
 
         const text = response.text?.trim() || '';
-        
+
         // Parse the JSON response
         let suggestions: string[];
+        let parseFailed = false;
         try {
             // Handle potential markdown code blocks
             const jsonStr = text.replace(/```json\n?|\n?```/g, '').trim();
             suggestions = JSON.parse(jsonStr);
-            
+
             if (!Array.isArray(suggestions) || suggestions.length === 0) {
                 throw new Error('Invalid response format');
             }
         } catch {
+            parseFailed = true;
             // Fallback suggestions if parsing fails
             suggestions = [
                 '🦄 A unicorn in a flower garden',
@@ -67,6 +71,17 @@ Return ONLY the JSON array, no other text.`,
                 '🐱 A cat wizard with a wand'
             ];
         }
+
+        const usageMetadata = response.usageMetadata;
+        waitUntil(logLLMRequest(env, request, {
+            requestType: 'suggestions',
+            model,
+            durationMs: llmDuration,
+            success: !parseFailed,
+            errorMessage: parseFailed ? 'Parse failed, used fallback' : undefined,
+            inputTokens: usageMetadata?.promptTokenCount,
+            outputTokens: usageMetadata?.candidatesTokenCount
+        }));
 
         waitUntil(logRequest(env, request, {
             endpoint: '/api/suggestions',

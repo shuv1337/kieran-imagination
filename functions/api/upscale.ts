@@ -6,6 +6,7 @@ import {
     getClientIp,
     jsonResponse,
     logError,
+    logLLMRequest,
     logRequest,
     saveImageToR2AndDb,
     validatePayload,
@@ -66,6 +67,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, waitUnti
             { text: fullPrompt },
         ];
 
+        const llmStartTime = Date.now();
         const response = await ai.models.generateContent({
             model,
             contents: parts,
@@ -76,9 +78,18 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, waitUnti
                 }
             }
         });
+        const llmDuration = Date.now() - llmStartTime;
 
         const candidate = response.candidates?.[0];
         if (!candidate?.content?.parts) {
+            waitUntil(logLLMRequest(env, request, {
+                requestType: 'upscale',
+                model,
+                hasInputImage: true,
+                durationMs: llmDuration,
+                success: false,
+                errorMessage: 'No image generated'
+            }));
             throw new HttpError(502, "No image generated");
         }
 
@@ -91,10 +102,30 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, waitUnti
         }
 
         if (!base64Image) {
+            waitUntil(logLLMRequest(env, request, {
+                requestType: 'upscale',
+                model,
+                hasInputImage: true,
+                durationMs: llmDuration,
+                success: false,
+                errorMessage: 'No image data found in response'
+            }));
             throw new HttpError(502, "No image data found in response");
         }
 
         const { id, key, publicUrl } = await saveImageToR2AndDb(env, base64Image, 'Upscale', 'upscale');
+
+        const usageMetadata = response.usageMetadata;
+        waitUntil(logLLMRequest(env, request, {
+            requestType: 'upscale',
+            model,
+            hasInputImage: true,
+            durationMs: llmDuration,
+            success: true,
+            inputTokens: usageMetadata?.promptTokenCount,
+            outputTokens: usageMetadata?.candidatesTokenCount,
+            generatedImageId: id
+        }));
 
         waitUntil(logRequest(env, request, {
             endpoint: '/api/upscale',

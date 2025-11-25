@@ -1,5 +1,5 @@
 export interface Env {
-    IMAGES_BUCKET: R2Bucket;
+    IMAGES_BUCKET?: R2Bucket;
     DB: D1Database;
 }
 
@@ -17,6 +17,19 @@ export interface RequestLogEntry {
     prompt?: string;
     errorMessage?: string;
     rateLimited?: boolean;
+    generatedImageId?: string;
+}
+
+export interface LLMRequestLogEntry {
+    requestType: 'generate' | 'edit' | 'upscale' | 'suggestions' | 'improve-prompt';
+    model: string;
+    prompt?: string;
+    hasInputImage?: boolean;
+    durationMs?: number;
+    success: boolean;
+    errorMessage?: string;
+    inputTokens?: number;
+    outputTokens?: number;
     generatedImageId?: string;
 }
 
@@ -92,6 +105,41 @@ export async function logRequest(
             .run();
     } catch (error) {
         logError('request-logging', error, { endpoint: entry.endpoint });
+    }
+}
+
+export async function logLLMRequest(
+    env: Env,
+    request: Request,
+    entry: LLMRequestLogEntry
+): Promise<void> {
+    const id = crypto.randomUUID();
+    const ip = getClientIp(request);
+
+    try {
+        await env.DB.prepare(
+            `INSERT INTO llm_requests
+             (id, timestamp, ip_address, request_type, model, prompt, has_input_image, duration_ms, success, error_message, input_tokens, output_tokens, generated_image_id)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        )
+            .bind(
+                id,
+                Date.now(),
+                ip,
+                entry.requestType,
+                entry.model,
+                entry.prompt ?? null,
+                entry.hasInputImage ? 1 : 0,
+                entry.durationMs ?? null,
+                entry.success ? 1 : 0,
+                entry.errorMessage ?? null,
+                entry.inputTokens ?? null,
+                entry.outputTokens ?? null,
+                entry.generatedImageId ?? null
+            )
+            .run();
+    } catch (error) {
+        logError('llm-request-logging', error, { requestType: entry.requestType });
     }
 }
 
