@@ -418,10 +418,28 @@ export const Editor: React.FC<EditorProps> = ({ initialImage, fileName, onBack }
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={() => {
+                            const dataUrl = canvasRef.current?.toDataURL('image/png');
+                            if (!dataUrl) return;
+                            
+                            // Convert data URL to blob for reliable download
+                            const byteString = atob(dataUrl.split(',')[1]);
+                            const mimeType = 'image/png';
+                            const ab = new ArrayBuffer(byteString.length);
+                            const ia = new Uint8Array(ab);
+                            for (let i = 0; i < byteString.length; i++) {
+                                ia[i] = byteString.charCodeAt(i);
+                            }
+                            const blob = new Blob([ab], { type: mimeType });
+                            const blobUrl = URL.createObjectURL(blob);
+                            
                             const link = document.createElement('a');
                             link.download = fileName || 'kierans-art.png';
-                            link.href = canvasRef.current?.toDataURL() || '';
+                            link.href = blobUrl;
+                            document.body.appendChild(link);
                             link.click();
+                            document.body.removeChild(link);
+                            
+                            setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
                         }} 
                         className="bg-green-500 hover:bg-green-400 text-white px-5 py-2 rounded-full text-sm font-bold flex items-center gap-2 shadow-lg shadow-green-500/20"
                     >

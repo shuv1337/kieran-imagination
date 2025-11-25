@@ -13,13 +13,27 @@ interface PreviewProps {
 }
 
 export const Preview: React.FC<PreviewProps> = ({ imageUrl, fileName, onBack, onEdit, onEnhance, isEnhancing }) => {
-  const linkHref = imageUrl.startsWith('data:') ? undefined : imageUrl;
-
-  const handleDownload = () => {
-    const link = document.createElement('a');
-    link.href = linkHref || imageUrl;
-    link.download = fileName;
-    link.click();
+  const handleDownload = async () => {
+    try {
+      // Fetch the image as a blob to ensure proper download across all browsers
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Clean up the blob URL after a short delay
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+    } catch (error) {
+      console.error('Download failed:', error);
+      // Fallback: open image in new tab
+      window.open(imageUrl, '_blank');
+    }
   };
 
   const handlePrint = () => {
