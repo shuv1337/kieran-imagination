@@ -21,7 +21,7 @@ export interface RequestLogEntry {
 }
 
 export interface LLMRequestLogEntry {
-    requestType: 'generate' | 'edit' | 'upscale' | 'suggestions' | 'improve-prompt';
+    requestType: 'generate' | 'edit' | 'upscale' | 'suggestions' | 'suggestions-seed' | 'improve-prompt';
     model: string;
     prompt?: string;
     hasInputImage?: boolean;
