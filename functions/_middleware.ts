@@ -1,7 +1,15 @@
-// Middleware to inject Hot or Not meta tags for /hot route
-export const onRequest: PagesFunction = async (context) => {
+// Middleware to inject Hot or Not meta tags for /hot and /hotornot routes
+export const onRequest: PagesFunction<Env> = async (context) => {
+  const url = new URL(context.request.url);
+  const path = url.pathname;
+
+  // Only process /hot and /hotornot routes
+  if (path !== '/hot' && path !== '/hotornot') {
+    return context.next();
+  }
+
   const response = await context.next();
-  
+
   // Only modify HTML responses
   const contentType = response.headers.get('content-type') || '';
   if (!contentType.includes('text/html')) {
@@ -10,11 +18,11 @@ export const onRequest: PagesFunction = async (context) => {
 
   let html = await response.text();
 
-  // Replace meta tags for /hot page
+  // Custom meta tags for /hot page
   const hotMeta = {
     title: 'HOT or NOT? | Coloring Page Rankings',
     description: 'Vote on AI-generated coloring pages! Rate them HOT or NOT and see which creations rise to the top.',
-    image: '/hot-share-banner.png',
+    image: 'https://kieran.app/hot-share-banner.png',
   };
 
   // Replace title
@@ -57,8 +65,10 @@ export const onRequest: PagesFunction = async (context) => {
     `<meta name="twitter:image" content="${hotMeta.image}"`
   );
 
+  // Create new response with modified HTML
+  const newHeaders = new Headers(response.headers);
   return new Response(html, {
     status: response.status,
-    headers: response.headers,
+    headers: newHeaders,
   });
 };
