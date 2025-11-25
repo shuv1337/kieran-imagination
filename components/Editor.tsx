@@ -1,13 +1,14 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import {
-    Download, Undo, Redo, Eraser, Pen, Sparkles,
+    Undo, Redo, Eraser, Pen, Sparkles,
     ChevronLeft, PaintBucket, Type as TypeIcon,
     Grid3X3, Palette, Save
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { clsx } from 'clsx';
 import { aiEditImage, aiUpscaleImage } from '../services/gemini';
 import { ToolType, PatternType, TextureType } from '../types';
+import { ErrorModal } from './ErrorModal';
 
 interface EditorProps {
     initialImage: string;
@@ -38,6 +39,7 @@ export const Editor: React.FC<EditorProps> = ({ initialImage, fileName, onBack }
     // AI State
     const [aiPrompt, setAiPrompt] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
     // Initialize
     useEffect(() => {
@@ -386,7 +388,7 @@ export const Editor: React.FC<EditorProps> = ({ initialImage, fileName, onBack }
             console.error(e);
             setIsProcessing(false);
             const message = e instanceof Error ? e.message : "AI Magic failed. Please try again.";
-            alert(message);
+            setErrorMessage(message);
         }
     };
 
@@ -681,6 +683,12 @@ export const Editor: React.FC<EditorProps> = ({ initialImage, fileName, onBack }
 
                 </div>
             </div>
+
+            <ErrorModal
+                isOpen={!!errorMessage}
+                onClose={() => setErrorMessage(null)}
+                message={errorMessage || ''}
+            />
         </div>
     );
 };

@@ -5,6 +5,7 @@ import { Editor } from './components/Editor';
 import { Preview } from './components/Preview';
 import { HotOrNot } from './components/HotOrNot';
 import Background from './components/Background';
+import { ErrorModal } from './components/ErrorModal';
 import { AppView } from './types';
 import kieranLogo from './kieran-logo.png';
 import { aiEditImage } from './services/gemini';
@@ -17,6 +18,7 @@ const App: React.FC = () => {
   const [currentFileName, setCurrentFileName] = useState<string>('kierans-art.png');
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [isHotRoute, setIsHotRoute] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Simple route detection for /hot and /hotornot
   useEffect(() => {
@@ -79,7 +81,7 @@ const App: React.FC = () => {
       }
     } catch (error) {
       console.error(error);
-      alert("Couldn't enhance the image. Please try again.");
+      setErrorMessage("Couldn't enhance the image. Please try again.");
     } finally {
       setIsEnhancing(false);
     }
@@ -206,6 +208,12 @@ const App: React.FC = () => {
           <p>Made by <span className="text-blue-400 font-bold"><a href="https://latitudes.io">Latitudes</a></span></p>
         </footer>
       )}
+
+      <ErrorModal
+        isOpen={!!errorMessage}
+        onClose={() => setErrorMessage(null)}
+        message={errorMessage || ''}
+      />
     </div>
   );
 };

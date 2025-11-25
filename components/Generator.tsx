@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Upload, Sparkles, ArrowRight, Wand2, X, ChevronLeft, ChevronRight, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { generateColoringPage, fetchSuggestions, improvePrompt } from '../services/gemini';
-
+import { ErrorModal } from './ErrorModal';
 import { twMerge } from 'tailwind-merge';
 
 interface GeneratorProps {
@@ -24,6 +24,7 @@ export const Generator: React.FC<GeneratorProps> = ({ onImageGenerated }) => {
   ]);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const [isImprovingPrompt, setIsImprovingPrompt] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const inputAreaRef = useRef<HTMLDivElement>(null);
 
@@ -197,7 +198,7 @@ export const Generator: React.FC<GeneratorProps> = ({ onImageGenerated }) => {
       const message = error instanceof Error
         ? error.message
         : "Oops! Something went wrong generating the image. Please try again.";
-      alert(message);
+      setErrorMessage(message);
     } finally {
       setIsGenerating(false);
     }
@@ -261,6 +262,12 @@ export const Generator: React.FC<GeneratorProps> = ({ onImageGenerated }) => {
                     <textarea
                         value={prompt}
                         onChange={(e) => setPrompt(e.target.value)}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey && !isGenerating && (prompt || uploadedImage)) {
+                                e.preventDefault();
+                                handleGenerate();
+                            }
+                        }}
                         placeholder="I want a coloring page of..."
                         className="w-full p-6 text-2xl md:text-4xl bg-transparent text-white placeholder-slate-600 focus:outline-none resize-none h-48 font-bold font-comic leading-tight"
                     />
@@ -470,6 +477,11 @@ export const Generator: React.FC<GeneratorProps> = ({ onImageGenerated }) => {
         </div>
       </motion.div>
 
+      <ErrorModal
+        isOpen={!!errorMessage}
+        onClose={() => setErrorMessage(null)}
+        message={errorMessage || ''}
+      />
     </div>
   );
 };
