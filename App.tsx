@@ -18,10 +18,11 @@ const App: React.FC = () => {
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [isHotRoute, setIsHotRoute] = useState(false);
 
-  // Simple route detection for /hot
+  // Simple route detection for /hot and /hotornot
   useEffect(() => {
     const checkRoute = () => {
-      setIsHotRoute(window.location.pathname === '/hot');
+      const path = window.location.pathname;
+      setIsHotRoute(path === '/hot' || path === '/hotornot');
     };
     checkRoute();
     window.addEventListener('popstate', checkRoute);

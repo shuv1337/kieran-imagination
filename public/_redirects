@@ -1,2 +1,3 @@
 # Handle client-side routing for SPA
-/hot    /index.html   200
+/hot        /index.html   200
+/hotornot   /index.html   200
