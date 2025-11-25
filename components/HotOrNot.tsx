@@ -145,7 +145,7 @@ export const HotOrNot: React.FC<HotOrNotProps> = () => {
             >
               <Flame className="w-12 h-12 text-orange-500" />
             </motion.div>
-            <h1 className="text-5xl md:text-7xl font-comic font-bold">
+            <h1 className="text-5xl md:text-7xl font-comic font-bold tracking-wide">
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500">
                 HOT
               </span>
