@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Generator } from './components/Generator';
 import { Editor } from './components/Editor';
 import { Preview } from './components/Preview';
+import { HotOrNot } from './components/HotOrNot';
 import Background from './components/Background';
 import { AppView } from './types';
 import kieranLogo from './kieran-logo.png';
@@ -15,6 +16,17 @@ const App: React.FC = () => {
   const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(null);
   const [currentFileName, setCurrentFileName] = useState<string>('kierans-art.png');
   const [isEnhancing, setIsEnhancing] = useState(false);
+  const [isHotRoute, setIsHotRoute] = useState(false);
+
+  // Simple route detection for /hot
+  useEffect(() => {
+    const checkRoute = () => {
+      setIsHotRoute(window.location.pathname === '/hot');
+    };
+    checkRoute();
+    window.addEventListener('popstate', checkRoute);
+    return () => window.removeEventListener('popstate', checkRoute);
+  }, []);
 
   const persistImage = async (dataUrl: string, fileName: string) => {
     try {
@@ -71,6 +83,11 @@ const App: React.FC = () => {
       setIsEnhancing(false);
     }
   };
+
+  // Render HotOrNot page for /hot route
+  if (isHotRoute) {
+    return <HotOrNot />;
+  }
 
   return (
     <div className="min-h-screen flex flex-col font-sans text-slate-100 relative overflow-hidden">
