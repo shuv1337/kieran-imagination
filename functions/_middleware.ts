@@ -8,7 +8,9 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     return context.next();
   }
 
-  const response = await context.next();
+  // Fetch the index.html directly (since /hot and /hotornot don't exist as static files)
+  const indexUrl = new URL('/index.html', url.origin);
+  const response = await context.env.ASSETS.fetch(indexUrl);
 
   // Only modify HTML responses
   const contentType = response.headers.get('content-type') || '';

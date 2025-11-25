@@ -2,6 +2,7 @@ interface Env {
     GEMINI_API_KEY: string;
     IMAGES_BUCKET: R2Bucket;
     DB: D1Database;
+    ASSETS: Fetcher;
 }
 
 type PagesFunction<T = unknown> = (context: EventContext<T, any, any>) => Promise<Response> | Response;

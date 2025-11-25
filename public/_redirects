@@ -1,3 +1,2 @@
 # Handle client-side routing for SPA
-/hot        /index.html   200
-/hotornot   /index.html   200
+# /hot and /hotornot are handled by functions/_middleware.ts for custom meta tags
