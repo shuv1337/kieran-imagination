@@ -6,6 +6,7 @@ import {
     getClientIp,
     jsonResponse,
     logError,
+    logRequest,
     saveImageToR2AndDb,
     validatePayload,
 } from "../utils";
@@ -16,22 +17,38 @@ interface Env {
     DB: D1Database;
 }
 
-export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
+export const onRequestPost: PagesFunction<Env> = async ({ request, env, waitUntil }) => {
     const requestId = crypto.randomUUID();
     const ip = getClientIp(request);
+    const startTime = Date.now();
+    let prompt: string | undefined;
 
     try {
         const body = await request.json().catch(() => {
             throw new HttpError(400, "Invalid JSON payload");
         });
 
-        const { prompt, referenceImage } = body as { prompt?: string; referenceImage?: string };
+        const { prompt: bodyPrompt, referenceImage } = body as { prompt?: string; referenceImage?: string };
+        prompt = bodyPrompt;
 
         if (!prompt) {
             throw new HttpError(400, "Prompt is required");
         }
 
-        enforceRateLimit(ip, 'generate');
+        try {
+            enforceRateLimit(ip, 'generate');
+        } catch (error) {
+            waitUntil(logRequest(env, request, {
+                endpoint: '/api/generate',
+                method: 'POST',
+                statusCode: 429,
+                durationMs: Date.now() - startTime,
+                prompt,
+                rateLimited: true,
+                errorMessage: 'Rate limited'
+            }));
+            throw error;
+        }
 
         const base64Data = referenceImage ? getBase64FromUrl(referenceImage) : undefined;
         validatePayload(prompt, base64Data);
@@ -91,7 +108,16 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
             throw new HttpError(502, "No image data found in response");
         }
 
-        const { key, publicUrl } = await saveImageToR2AndDb(env, base64Image, prompt, 'generate');
+        const { id, key, publicUrl } = await saveImageToR2AndDb(env, base64Image, prompt, 'generate');
+
+        waitUntil(logRequest(env, request, {
+            endpoint: '/api/generate',
+            method: 'POST',
+            statusCode: 200,
+            durationMs: Date.now() - startTime,
+            prompt,
+            generatedImageId: id
+        }));
 
         return jsonResponse({
             url: publicUrl,
@@ -104,6 +130,17 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
         const message = status >= 500
             ? "Failed to generate image. Please try again."
             : (error instanceof Error ? error.message : "Request failed.");
+
+        if (status !== 429) {
+            waitUntil(logRequest(env, request, {
+                endpoint: '/api/generate',
+                method: 'POST',
+                statusCode: status,
+                durationMs: Date.now() - startTime,
+                prompt,
+                errorMessage: error instanceof Error ? error.message : String(error)
+            }));
+        }
 
         logError("generate", error, { requestId, ip });
         return jsonResponse({ error: message }, status);

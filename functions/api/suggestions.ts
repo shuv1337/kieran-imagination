@@ -1,16 +1,30 @@
 import { GoogleGenAI } from "@google/genai";
-import { HttpError, enforceRateLimit, getClientIp, jsonResponse, logError } from "../utils";
+import { HttpError, enforceRateLimit, getClientIp, jsonResponse, logError, logRequest } from "../utils";
 
 interface Env {
     GEMINI_API_KEY: string;
+    DB: D1Database;
 }
 
-export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
+export const onRequestGet: PagesFunction<Env> = async ({ request, env, waitUntil }) => {
     const requestId = crypto.randomUUID();
     const ip = getClientIp(request);
+    const startTime = Date.now();
 
     try {
-        enforceRateLimit(ip, 'suggestions');
+        try {
+            enforceRateLimit(ip, 'suggestions');
+        } catch (error) {
+            waitUntil(logRequest(env, request, {
+                endpoint: '/api/suggestions',
+                method: 'GET',
+                statusCode: 429,
+                durationMs: Date.now() - startTime,
+                rateLimited: true,
+                errorMessage: 'Rate limited'
+            }));
+            throw error;
+        }
 
         const ai = new GoogleGenAI({ apiKey: env.GEMINI_API_KEY });
         const model = 'gemini-2.0-flash';
@@ -54,6 +68,13 @@ Return ONLY the JSON array, no other text.`,
             ];
         }
 
+        waitUntil(logRequest(env, request, {
+            endpoint: '/api/suggestions',
+            method: 'GET',
+            statusCode: 200,
+            durationMs: Date.now() - startTime
+        }));
+
         return jsonResponse({ suggestions });
 
     } catch (error) {
@@ -61,6 +82,16 @@ Return ONLY the JSON array, no other text.`,
         const message = status >= 500
             ? "Failed to generate suggestions."
             : (error instanceof Error ? error.message : "Request failed.");
+
+        if (status !== 429) {
+            waitUntil(logRequest(env, request, {
+                endpoint: '/api/suggestions',
+                method: 'GET',
+                statusCode: status,
+                durationMs: Date.now() - startTime,
+                errorMessage: error instanceof Error ? error.message : String(error)
+            }));
+        }
 
         logError("suggestions", error, { requestId, ip });
         return jsonResponse({ error: message }, status);

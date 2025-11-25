@@ -65,3 +65,19 @@ export const fetchSuggestions = async (): Promise<string[]> => {
   const data = await response.json();
   return data.suggestions;
 };
+
+export const improvePrompt = async (prompt: string): Promise<string> => {
+  const response = await fetch('/api/improve-prompt', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prompt }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+    throw new Error(error.error || 'Failed to improve prompt');
+  }
+
+  const data = await response.json();
+  return data.improvedPrompt;
+};

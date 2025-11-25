@@ -6,6 +6,7 @@ import {
     getClientIp,
     jsonResponse,
     logError,
+    logRequest,
     saveImageToR2AndDb,
     validatePayload,
 } from "../utils";
@@ -16,9 +17,10 @@ interface Env {
     DB: D1Database;
 }
 
-export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
+export const onRequestPost: PagesFunction<Env> = async ({ request, env, waitUntil }) => {
     const requestId = crypto.randomUUID();
     const ip = getClientIp(request);
+    const startTime = Date.now();
 
     try {
         const body = await request.json().catch(() => {
@@ -31,7 +33,20 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
             throw new HttpError(400, "Image is required");
         }
 
-        enforceRateLimit(ip, 'upscale');
+        try {
+            enforceRateLimit(ip, 'upscale');
+        } catch (error) {
+            waitUntil(logRequest(env, request, {
+                endpoint: '/api/upscale',
+                method: 'POST',
+                statusCode: 429,
+                durationMs: Date.now() - startTime,
+                prompt: 'Upscale',
+                rateLimited: true,
+                errorMessage: 'Rate limited'
+            }));
+            throw error;
+        }
 
         const base64Data = getBase64FromUrl(currentImage);
         validatePayload("Upscale", base64Data);
@@ -79,7 +94,16 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
             throw new HttpError(502, "No image data found in response");
         }
 
-        const { key, publicUrl } = await saveImageToR2AndDb(env, base64Image, 'Upscale', 'upscale');
+        const { id, key, publicUrl } = await saveImageToR2AndDb(env, base64Image, 'Upscale', 'upscale');
+
+        waitUntil(logRequest(env, request, {
+            endpoint: '/api/upscale',
+            method: 'POST',
+            statusCode: 200,
+            durationMs: Date.now() - startTime,
+            prompt: 'Upscale',
+            generatedImageId: id
+        }));
 
         return jsonResponse({
             url: publicUrl,
@@ -92,6 +116,17 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
         const message = status >= 500
             ? "Failed to upscale image. Please try again."
             : (error instanceof Error ? error.message : "Request failed.");
+
+        if (status !== 429) {
+            waitUntil(logRequest(env, request, {
+                endpoint: '/api/upscale',
+                method: 'POST',
+                statusCode: status,
+                durationMs: Date.now() - startTime,
+                prompt: 'Upscale',
+                errorMessage: error instanceof Error ? error.message : String(error)
+            }));
+        }
 
         logError("upscale", error, { requestId, ip });
         return jsonResponse({ error: message }, status);

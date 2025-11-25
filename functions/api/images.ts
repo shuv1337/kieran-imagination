@@ -5,6 +5,7 @@ import {
     getClientIp,
     jsonResponse,
     logError,
+    logRequest,
     saveImageToR2AndDb,
     validatePayload,
 } from "../utils";
@@ -14,9 +15,10 @@ interface Env {
     DB: D1Database;
 }
 
-export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
+export const onRequestPost: PagesFunction<Env> = async ({ request, env, waitUntil }) => {
     const requestId = crypto.randomUUID();
     const ip = getClientIp(request);
+    const startTime = Date.now();
 
     try {
         const body = await request.json().catch(() => {
@@ -29,14 +31,36 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
             throw new HttpError(400, "Image data is required");
         }
 
-        enforceRateLimit(ip, 'images');
+        try {
+            enforceRateLimit(ip, 'images');
+        } catch (error) {
+            waitUntil(logRequest(env, request, {
+                endpoint: '/api/images',
+                method: 'POST',
+                statusCode: 429,
+                durationMs: Date.now() - startTime,
+                prompt: 'Manual Upload',
+                rateLimited: true,
+                errorMessage: 'Rate limited'
+            }));
+            throw error;
+        }
 
         const base64Data = getBase64FromUrl(dataUrl);
         validatePayload("Manual Upload", base64Data);
 
-        const { key, publicUrl } = await saveImageToR2AndDb(env, base64Data, "Manual Upload", 'upload', {
+        const { id, key, publicUrl } = await saveImageToR2AndDb(env, base64Data, "Manual Upload", 'upload', {
             originalFileName: fileName,
         });
+
+        waitUntil(logRequest(env, request, {
+            endpoint: '/api/images',
+            method: 'POST',
+            statusCode: 200,
+            durationMs: Date.now() - startTime,
+            prompt: 'Manual Upload',
+            generatedImageId: id
+        }));
 
         return jsonResponse({
             url: publicUrl,
@@ -49,6 +73,17 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
         const message = status >= 500
             ? "Failed to upload image. Please try again."
             : (error instanceof Error ? error.message : "Request failed.");
+
+        if (status !== 429) {
+            waitUntil(logRequest(env, request, {
+                endpoint: '/api/images',
+                method: 'POST',
+                statusCode: status,
+                durationMs: Date.now() - startTime,
+                prompt: 'Manual Upload',
+                errorMessage: error instanceof Error ? error.message : String(error)
+            }));
+        }
 
         logError("images", error, { requestId, ip });
         return jsonResponse({ error: message }, status);

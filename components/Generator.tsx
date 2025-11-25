@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Upload, Sparkles, ArrowRight, Wand2, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Upload, Sparkles, ArrowRight, Wand2, X, ChevronLeft, ChevronRight, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { generateColoringPage, fetchSuggestions } from '../services/gemini';
+import { generateColoringPage, fetchSuggestions, improvePrompt } from '../services/gemini';
 
 import { twMerge } from 'tailwind-merge';
 
@@ -23,6 +23,7 @@ export const Generator: React.FC<GeneratorProps> = ({ onImageGenerated }) => {
     '🦄 A rainbow unicorn',
   ]);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
+  const [isImprovingPrompt, setIsImprovingPrompt] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const inputAreaRef = useRef<HTMLDivElement>(null);
 
@@ -82,18 +83,22 @@ export const Generator: React.FC<GeneratorProps> = ({ onImageGenerated }) => {
   // Auto-rotate carousel on mobile
   useEffect(() => {
     const interval = setInterval(() => {
-      setCarouselIndex((prev) => (prev + 1) % suggestions.length);
+      if (suggestions && suggestions.length > 0) {
+        setCarouselIndex((prev) => (prev + 1) % suggestions.length);
+      }
     }, 3000);
     return () => clearInterval(interval);
-  }, [suggestions.length]);
+  }, [suggestions?.length]);
 
   const loadSuggestions = async () => {
     if (isLoadingSuggestions) return;
     setIsLoadingSuggestions(true);
     try {
       const newSuggestions = await fetchSuggestions();
-      setSuggestions(newSuggestions);
-      setCarouselIndex(0);
+      if (newSuggestions && Array.isArray(newSuggestions)) {
+        setSuggestions(newSuggestions);
+        setCarouselIndex(0);
+      }
     } catch (error) {
       console.error('Failed to load suggestions:', error);
     } finally {
@@ -114,6 +119,20 @@ export const Generator: React.FC<GeneratorProps> = ({ onImageGenerated }) => {
     loadSuggestions();
   };
 
+  const handleImprovePrompt = async () => {
+    if (!prompt.trim() || isImprovingPrompt) return;
+    
+    setIsImprovingPrompt(true);
+    try {
+      const improved = await improvePrompt(prompt);
+      setPrompt(improved);
+    } catch (error) {
+      console.error('Failed to improve prompt:', error);
+    } finally {
+      setIsImprovingPrompt(false);
+    }
+  };
+
   const nextSuggestion = () => {
     setCarouselIndex((prev) => (prev + 1) % suggestions.length);
   };
@@ -122,16 +141,46 @@ export const Generator: React.FC<GeneratorProps> = ({ onImageGenerated }) => {
     setCarouselIndex((prev) => (prev - 1 + suggestions.length) % suggestions.length);
   };
 
+  const processFile = (file: File) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setUploadedImage(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setUploadedImage(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+      processFile(file);
     }
   };
+
+  // Handle paste events
+  useEffect(() => {
+    const handlePaste = (e: ClipboardEvent) => {
+      const items = e.clipboardData?.items;
+      if (items) {
+        for (let i = 0; i < items.length; i++) {
+          if (items[i].type.indexOf('image') !== -1) {
+            const file = items[i].getAsFile();
+            if (file) {
+              processFile(file);
+              // Only prevent default if we actually handled an image
+              // This allows text pasting to still work in inputs
+              e.preventDefault();
+            }
+            break; // Only handle the first image found
+          }
+        }
+      }
+    };
+
+    window.addEventListener('paste', handlePaste);
+    return () => {
+      window.removeEventListener('paste', handlePaste);
+    };
+  }, []);
 
   const handleGenerate = async () => {
     if (!prompt && !uploadedImage) return;
@@ -217,16 +266,47 @@ export const Generator: React.FC<GeneratorProps> = ({ onImageGenerated }) => {
                         className="w-full p-6 text-2xl md:text-4xl bg-transparent text-white placeholder-slate-600 focus:outline-none resize-none h-48 font-bold font-comic leading-tight"
                     />
                     
-                    {/* Lucky Button */}
-                    <motion.button
-                        whileHover={{ scale: 1.1, rotate: 5 }}
-                        whileTap={{ scale: 0.9 }}
-                        onClick={handleLuckyPrompt}
-                        className="absolute bottom-4 right-4 px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full text-white font-bold flex items-center gap-2 shadow-lg hover:shadow-purple-500/50 transition-all"
-                    >
-                        <Sparkles size={18} className="text-yellow-300" />
-                        I'm Feeling Lucky!
-                    </motion.button>
+                    {/* Action Buttons */}
+                    <div className="absolute bottom-4 right-4 flex items-center gap-2">
+                        {/* Improve Prompt Button - only shows when there's text */}
+                        <AnimatePresence>
+                            {prompt.trim() && (
+                                <motion.button
+                                    initial={{ opacity: 0, scale: 0.8, x: 20 }}
+                                    animate={{ opacity: 1, scale: 1, x: 0 }}
+                                    exit={{ opacity: 0, scale: 0.8, x: 20 }}
+                                    whileHover={{ scale: 1.1 }}
+                                    whileTap={{ scale: 0.9 }}
+                                    onClick={handleImprovePrompt}
+                                    disabled={isImprovingPrompt}
+                                    className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full text-white font-bold flex items-center gap-2 shadow-lg hover:shadow-emerald-500/50 transition-all disabled:opacity-70"
+                                >
+                                    {isImprovingPrompt ? (
+                                        <motion.div
+                                            animate={{ rotate: 360 }}
+                                            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                                        >
+                                            <Zap size={18} className="text-yellow-300" />
+                                        </motion.div>
+                                    ) : (
+                                        <Zap size={18} className="text-yellow-300" />
+                                    )}
+                                    <span className="hidden sm:inline">{isImprovingPrompt ? 'Improving...' : 'Improve Prompt'}</span>
+                                </motion.button>
+                            )}
+                        </AnimatePresence>
+                        
+                        {/* Lucky Button */}
+                        <motion.button
+                            whileHover={{ scale: 1.1, rotate: 5 }}
+                            whileTap={{ scale: 0.9 }}
+                            onClick={handleLuckyPrompt}
+                            className="px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full text-white font-bold flex items-center gap-2 shadow-lg hover:shadow-purple-500/50 transition-all"
+                        >
+                            <Sparkles size={18} className="text-yellow-300" />
+                            <span className="hidden sm:inline">I'm Feeling Lucky!</span>
+                        </motion.button>
+                    </div>
                 </div>
             </div>
 
@@ -333,7 +413,7 @@ export const Generator: React.FC<GeneratorProps> = ({ onImageGenerated }) => {
                                     <Upload className="text-purple-300 md:text-blue-400" size={24} />
                                 </div>
                                 <div className="text-left">
-                                    <span className="block font-bold text-lg md:text-base text-white md:text-slate-300 group-hover:text-white">Upload Your Photo</span>
+                                    <span className="block font-bold text-lg md:text-base text-white md:text-slate-300 group-hover:text-white">Upload or Paste Photo</span>
                                     <span className="text-sm md:text-xs text-purple-200 md:text-slate-500">Turn any picture into a coloring page!</span>
                                 </div>
                             </div>

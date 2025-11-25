@@ -4,8 +4,20 @@ export interface Env {
 }
 
 export interface PersistedImage {
+    id: string;
     key: string;
     publicUrl: string;
+}
+
+export interface RequestLogEntry {
+    endpoint: string;
+    method: string;
+    statusCode: number;
+    durationMs?: number;
+    prompt?: string;
+    errorMessage?: string;
+    rateLimited?: boolean;
+    generatedImageId?: string;
 }
 
 export interface SaveImageOptions {
@@ -46,6 +58,41 @@ export function logError(scope: string, error: unknown, context: Record<string, 
         base.error = String(error);
     }
     console.error(JSON.stringify(base));
+}
+
+export async function logRequest(
+    env: Env,
+    request: Request,
+    entry: RequestLogEntry
+): Promise<void> {
+    const id = crypto.randomUUID();
+    const ip = getClientIp(request);
+    const userAgent = request.headers.get('user-agent') || 'unknown';
+
+    try {
+        await env.DB.prepare(
+            `INSERT INTO request_logs
+             (id, timestamp, ip_address, endpoint, method, status_code, duration_ms, prompt, error_message, user_agent, rate_limited, generated_image_id)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        )
+            .bind(
+                id,
+                Date.now(),
+                ip,
+                entry.endpoint,
+                entry.method,
+                entry.statusCode,
+                entry.durationMs ?? null,
+                entry.prompt ?? null,
+                entry.errorMessage ?? null,
+                userAgent,
+                entry.rateLimited ? 1 : 0,
+                entry.generatedImageId ?? null
+            )
+            .run();
+    } catch (error) {
+        logError('request-logging', error, { endpoint: entry.endpoint });
+    }
 }
 
 export function calculateBase64Bytes(base64Data: string): number {
@@ -134,7 +181,7 @@ export async function saveImageToR2AndDb(
             .bind(id, fileName, prompt, key, Date.now(), source, JSON.stringify(metadata))
             .run();
 
-        return { key, publicUrl: buildPublicUrl(key) };
+        return { id, key, publicUrl: buildPublicUrl(key) };
     } catch (error) {
         try {
             await env.IMAGES_BUCKET.delete(key);
