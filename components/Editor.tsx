@@ -385,7 +385,8 @@ export const Editor: React.FC<EditorProps> = ({ initialImage, fileName, onBack }
         } catch (e) {
             console.error(e);
             setIsProcessing(false);
-            alert("AI Magic failed. Please try again.");
+            const message = e instanceof Error ? e.message : "AI Magic failed. Please try again.";
+            alert(message);
         }
     };
 

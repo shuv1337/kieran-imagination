@@ -84,7 +84,25 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, waitUnti
         });
         const llmDuration = Date.now() - llmStartTime;
 
+        // Check for content filtering / safety blocks
         const candidate = response.candidates?.[0];
+        const finishReason = candidate?.finishReason;
+        const blockReason = response.promptFeedback?.blockReason;
+
+        if (blockReason || finishReason === 'SAFETY' || finishReason === 'PROHIBITED_CONTENT') {
+            const reason = blockReason || finishReason || 'content_filtered';
+            waitUntil(logLLMRequest(env, request, {
+                requestType: 'edit',
+                model,
+                prompt: instruction,
+                hasInputImage: true,
+                durationMs: llmDuration,
+                success: false,
+                errorMessage: `Content filtered: ${reason}`
+            }));
+            throw new HttpError(400, "Your edit was blocked by content filters. Please try a different instruction!");
+        }
+
         if (!candidate?.content?.parts) {
             waitUntil(logLLMRequest(env, request, {
                 requestType: 'edit',

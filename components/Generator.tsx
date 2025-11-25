@@ -194,10 +194,9 @@ export const Generator: React.FC<GeneratorProps> = ({ onImageGenerated }) => {
       onImageGenerated(preview, fileName, result.key, result.url);
     } catch (error) {
       console.error(error);
-      const message =
-        error instanceof Error && error.message === 'SAFETY_BLOCKED'
-          ? "The AI couldn't create that because the prompt triggered content restrictions. Please try a kid-friendly idea!"
-          : "Oops! Something went wrong generating the image. Please try again.";
+      const message = error instanceof Error
+        ? error.message
+        : "Oops! Something went wrong generating the image. Please try again.";
       alert(message);
     } finally {
       setIsGenerating(false);
