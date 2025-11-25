@@ -99,7 +99,11 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, waitUnti
         const finishReason = candidate?.finishReason;
         const blockReason = response.promptFeedback?.blockReason;
 
-        if (blockReason || finishReason === 'SAFETY' || finishReason === 'PROHIBITED_CONTENT') {
+        // All finishReason values that indicate content was blocked/filtered
+        const blockedFinishReasons = ['SAFETY', 'PROHIBITED_CONTENT', 'RECITATION', 'SPII', 'IMAGE_SAFETY', 'OTHER', 'BLOCKLIST'];
+        const isBlocked = blockReason || (finishReason && blockedFinishReasons.includes(finishReason));
+
+        if (isBlocked) {
             const reason = blockReason || finishReason || 'content_filtered';
             waitUntil(logLLMRequest(env, request, {
                 requestType: 'generate',
