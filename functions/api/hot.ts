@@ -22,17 +22,96 @@ interface ImageWithRating {
     rating: number;
     total_votes: number;
     user_vote: string | null;
+    hot_score: number;
 }
 
-// GET /api/hot - Get images sorted by rating
+/**
+ * Wilson Score Lower Bound
+ * 
+ * Provides a statistically confident score for items with varying vote counts.
+ * Unlike simple ratios (upvotes/total), this handles the uncertainty when
+ * there are few votes. An item with 1 upvote out of 1 total won't rank above
+ * an item with 100 upvotes out of 110.
+ * 
+ * z = 1.96 for 95% confidence interval
+ */
+function wilsonScore(upvotes: number, downvotes: number, z: number = 1.96): number {
+    const n = upvotes + downvotes;
+    if (n === 0) return 0;
+    
+    const p = upvotes / n;
+    const zsq = z * z;
+    
+    // Wilson score lower bound formula
+    const numerator = p + zsq / (2 * n) - z * Math.sqrt((p * (1 - p) + zsq / (4 * n)) / n);
+    const denominator = 1 + zsq / n;
+    
+    return numerator / denominator;
+}
+
+/**
+ * Hot Score Algorithm (inspired by Reddit/HN)
+ * 
+ * Combines Wilson Score confidence with time decay to surface newer content.
+ * 
+ * Components:
+ * 1. Wilson Score: Statistically confident rating (0-1)
+ * 2. Time Boost: Newer images get a logarithmic boost that decays over time
+ * 3. New Item Boost: Items with <3 votes get extra visibility
+ * 
+ * @param upvotes - Number of "hot" votes
+ * @param downvotes - Number of "not" votes  
+ * @param createdAt - Timestamp when image was created
+ * @param now - Current timestamp
+ * @returns Combined hot score for ranking
+ */
+function calculateHotScore(
+    upvotes: number,
+    downvotes: number,
+    createdAt: number,
+    now: number
+): number {
+    const totalVotes = upvotes + downvotes;
+    
+    // 1. Base score from Wilson confidence (0-1 range)
+    const wilson = wilsonScore(upvotes, downvotes);
+    
+    // 2. Time factor: hours since creation
+    const hoursOld = Math.max(0, (now - createdAt) / (1000 * 60 * 60));
+    
+    // 3. Time decay: newer items score higher
+    // After 72 hours (3 days), time boost is minimal
+    // Formula: timeBoost = 1 / (1 + hoursOld / halfLife)
+    const halfLife = 24; // 24 hours half-life
+    const timeBoost = 1 / (1 + hoursOld / halfLife);
+    
+    // 4. New item bonus: items with few votes get extra visibility
+    // This ensures new uploads appear on the first page
+    const newItemBonus = totalVotes < 3 ? 0.3 * (1 - totalVotes / 3) : 0;
+    
+    // 5. Engagement bonus: more total votes = more interesting
+    // Logarithmic to prevent runaway scores
+    const engagementBonus = totalVotes > 0 ? Math.log10(1 + totalVotes) * 0.1 : 0;
+    
+    // Combine: wilson (0-1) + timeBoost (0-1) + newItemBonus (0-0.3) + engagementBonus
+    // Weight wilson more heavily as votes accumulate
+    const wilsonWeight = Math.min(0.7, 0.3 + totalVotes * 0.04); // 0.3 -> 0.7 as votes increase
+    const timeWeight = 1 - wilsonWeight;
+    
+    return (wilson * wilsonWeight) + (timeBoost * timeWeight) + newItemBonus + engagementBonus;
+}
+
+// GET /api/hot - Get images sorted by hot score (Wilson + time decay)
 export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
     try {
         const url = new URL(request.url);
         const limit = Math.min(parseInt(url.searchParams.get('limit') || '20'), 100);
         const offset = parseInt(url.searchParams.get('offset') || '0');
         const ip = getClientIp(request);
+        const now = Date.now();
 
-        // Get images with vote counts
+        // Get ALL images with vote counts (we need to calculate hot_score in JS)
+        // D1 doesn't support complex math functions like sqrt/log needed for Wilson score
         const result = await env.DB.prepare(`
             SELECT 
                 gi.id,
@@ -48,30 +127,39 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
             FROM generated_images gi
             LEFT JOIN image_votes iv ON gi.id = iv.image_id
             GROUP BY gi.id
-            ORDER BY rating DESC, hot_votes DESC, gi.created_at DESC
-            LIMIT ? OFFSET ?
-        `).bind(ip, limit, offset).all();
+        `).bind(ip).all();
 
-        const images: ImageWithRating[] = (result.results || []).map((row: any) => ({
-            id: row.id,
-            url: buildPublicUrl(row.r2_key),
-            prompt: row.prompt,
-            created_at: row.created_at,
-            hot_votes: row.hot_votes,
-            not_votes: row.not_votes,
-            rating: row.rating,
-            total_votes: row.total_votes,
-            user_vote: row.user_vote,
-        }));
+        // Calculate hot_score for each image and sort
+        const allImages: ImageWithRating[] = (result.results || []).map((row: any) => {
+            const hotScore = calculateHotScore(
+                row.hot_votes,
+                row.not_votes,
+                row.created_at,
+                now
+            );
+            return {
+                id: row.id,
+                url: buildPublicUrl(row.r2_key),
+                prompt: row.prompt,
+                created_at: row.created_at,
+                hot_votes: row.hot_votes,
+                not_votes: row.not_votes,
+                rating: row.rating,
+                total_votes: row.total_votes,
+                user_vote: row.user_vote,
+                hot_score: hotScore,
+            };
+        });
 
-        // Get total count
-        const countResult = await env.DB.prepare(
-            'SELECT COUNT(*) as count FROM generated_images'
-        ).first<{ count: number }>();
+        // Sort by hot_score descending
+        allImages.sort((a, b) => b.hot_score - a.hot_score);
+
+        // Apply pagination
+        const paginatedImages = allImages.slice(offset, offset + limit);
 
         return jsonResponse({
-            images,
-            total: countResult?.count || 0,
+            images: paginatedImages,
+            total: allImages.length,
             limit,
             offset,
         });

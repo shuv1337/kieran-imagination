@@ -76,7 +76,8 @@ export class HttpError extends Error {
 
 export const MAX_PROMPT_LENGTH = 1000;
 export const MAX_BASE64_BYTES = 50 * 1024 * 1024; // 50MB - we accept larger images and resize them down
-export const TARGET_IMAGE_MAX_DIMENSION = 1536; // Max dimension for Gemini (keeps costs reasonable)
+export const RESIZE_THRESHOLD_BYTES = 8 * 1024 * 1024; // 8MB - only resize if image exceeds this (avoids unnecessary resizing)
+export const TARGET_IMAGE_MAX_DIMENSION = 1024; // Max dimension when resizing large images for Gemini
 
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX_REQUESTS = 20;
@@ -280,14 +281,30 @@ export interface ResizeResult {
 }
 
 /**
- * Resizes an image if it exceeds the target max dimension using Cloudflare Images.
+ * Resizes an image if it exceeds the size threshold using Cloudflare Images.
+ * Only resizes large images that would otherwise cause issues - leaves smaller images alone.
  * Returns the resized base64 data, or the original if no resize was needed.
  */
 export async function resizeImageIfNeeded(
     imagesBinding: ImagesBinding,
     base64Data: string,
-    maxDimension: number = TARGET_IMAGE_MAX_DIMENSION
+    maxDimension: number = TARGET_IMAGE_MAX_DIMENSION,
+    sizeThresholdBytes: number = RESIZE_THRESHOLD_BYTES
 ): Promise<ResizeResult> {
+    // Check file size first - only resize if over threshold
+    const estimatedBytes = calculateBase64Bytes(base64Data);
+    if (estimatedBytes <= sizeThresholdBytes) {
+        // Image is small enough, skip resize entirely
+        return {
+            base64Data,
+            originalWidth: 0, // Unknown, didn't check
+            originalHeight: 0,
+            newWidth: 0,
+            newHeight: 0,
+            wasResized: false,
+        };
+    }
+
     // Decode base64 to ArrayBuffer
     const binaryString = atob(base64Data);
     const bytes = new Uint8Array(binaryString.length);
@@ -300,8 +317,19 @@ export async function resizeImageIfNeeded(
     const info = await imagesBinding.info(arrayBuffer);
     const { width: originalWidth, height: originalHeight } = info;
 
-    // Check if resize is needed
-    if (originalWidth <= maxDimension && originalHeight <= maxDimension) {
+    // Calculate new dimensions maintaining aspect ratio
+    let newWidth: number;
+    let newHeight: number;
+    if (originalWidth > originalHeight) {
+        newWidth = Math.min(maxDimension, originalWidth);
+        newHeight = Math.round((originalHeight / originalWidth) * newWidth);
+    } else {
+        newHeight = Math.min(maxDimension, originalHeight);
+        newWidth = Math.round((originalWidth / originalHeight) * newHeight);
+    }
+
+    // If dimensions wouldn't change much, skip resize
+    if (newWidth >= originalWidth * 0.9 && newHeight >= originalHeight * 0.9) {
         return {
             base64Data,
             originalWidth,
@@ -310,17 +338,6 @@ export async function resizeImageIfNeeded(
             newHeight: originalHeight,
             wasResized: false,
         };
-    }
-
-    // Calculate new dimensions maintaining aspect ratio
-    let newWidth: number;
-    let newHeight: number;
-    if (originalWidth > originalHeight) {
-        newWidth = maxDimension;
-        newHeight = Math.round((originalHeight / originalWidth) * maxDimension);
-    } else {
-        newHeight = maxDimension;
-        newWidth = Math.round((originalWidth / originalHeight) * maxDimension);
     }
 
     // Resize the image using Cloudflare Images

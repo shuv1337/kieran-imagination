@@ -12,6 +12,7 @@ interface ImageWithRating {
   rating: number;
   total_votes: number;
   user_vote: string | null;
+  hot_score: number;
 }
 
 interface HotOrNotProps {
@@ -119,8 +120,15 @@ export const HotOrNot: React.FC<HotOrNotProps> = () => {
     return null;
   };
 
-  const getHotness = (rating: number, totalVotes: number) => {
+  const getHotness = (rating: number, totalVotes: number, createdAt: number) => {
+    const hoursOld = (Date.now() - createdAt) / (1000 * 60 * 60);
+    
+    // Show "FRESH" badge for images less than 24 hours old with few votes
+    if (hoursOld < 24 && totalVotes < 5) {
+      return { level: 'fresh', color: 'text-green-400', label: 'FRESH' };
+    }
     if (totalVotes === 0) return { level: 'new', color: 'text-slate-400', label: 'NEW' };
+    
     const ratio = totalVotes > 0 ? (rating / totalVotes + 1) / 2 : 0.5;
     if (ratio > 0.8) return { level: 'fire', color: 'text-orange-500', label: 'ON FIRE!' };
     if (ratio > 0.6) return { level: 'hot', color: 'text-red-400', label: 'HOT' };
@@ -166,7 +174,7 @@ export const HotOrNot: React.FC<HotOrNotProps> = () => {
           </p>
           <div className="flex items-center justify-center gap-2 mt-2 text-sm text-slate-500">
             <TrendingUp size={16} />
-            <span>Sorted by highest rated</span>
+            <span>Sorted by hot score (popularity + freshness)</span>
           </div>
         </motion.div>
       </header>
@@ -205,7 +213,7 @@ export const HotOrNot: React.FC<HotOrNotProps> = () => {
               <AnimatePresence mode="popLayout">
                 {images.map((image, index) => {
                   const rankBadge = getRankBadge(index);
-                  const hotness = getHotness(image.rating, image.total_votes);
+                  const hotness = getHotness(image.rating, image.total_votes, image.created_at);
                   const voteAnim = voteAnimations[image.id];
                   
                   return (
