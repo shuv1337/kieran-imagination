@@ -120,15 +120,21 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, waitUnti
         }
 
         const fullPrompt = `Create a printable, black-and-white line art coloring page for children from this description: "${prompt}".
-    Strict Style Requirements:
-    - OUTPUT STYLE: Digital vector line art. NOT a photograph of a drawing.
-    - CONTENT: Pure black lines on a pure white (#FFFFFF) background.
-    - NO: Grayscale, shading, gradients, or colors.
-    - NO: Wood grain, table textures, paper textures, or physical background surfaces.
-    - NO: Borders, frames, or edges of paper visible.
-    - The image should look like a direct digital scan or vector export, not a photo taken with a camera.
-    - Clean, thick outlines suitable for coloring.
-    - Subject centered with white space padding around the edges.`;
+
+CRITICAL REQUIREMENTS - The output MUST be an UNCOLORED coloring page:
+- ONLY pure black lines (#000000) on a pure white background (#FFFFFF)
+- ABSOLUTELY NO filled-in colors, shading, grayscale areas, or gradients
+- ABSOLUTELY NO pre-colored sections - every area must be empty white space ready to be colored in by a child
+- This is a COLORING PAGE - all shapes must be OUTLINES ONLY with hollow interiors
+
+Style Requirements:
+- OUTPUT STYLE: Clean digital vector line art, NOT a photograph of a drawing
+- Clean, thick black outlines suitable for coloring with crayons or markers
+- All shapes should be outlined but NOT filled in - leave interiors white/empty
+- NO: Wood grain, table textures, paper textures, or physical background surfaces
+- NO: Borders, frames, or edges of paper visible
+- The image should look like a direct digital scan or vector export
+- Subject centered with white space padding around the edges`;
 
         parts.push({ text: fullPrompt });
 

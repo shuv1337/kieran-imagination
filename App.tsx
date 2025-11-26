@@ -8,7 +8,7 @@ import Background from './components/Background';
 import { ErrorModal } from './components/ErrorModal';
 import { AppView } from './types';
 import kieranLogo from './kieran-logo.png';
-import { aiEditImage } from './services/gemini';
+import { aiEditImage, regenerateColoringPage } from './services/gemini';
 import { saveGeneratedImage } from './services/storage';
 
 const App: React.FC = () => {
@@ -17,6 +17,7 @@ const App: React.FC = () => {
   const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(null);
   const [currentFileName, setCurrentFileName] = useState<string>('kierans-art.png');
   const [isEnhancing, setIsEnhancing] = useState(false);
+  const [isRegenerating, setIsRegenerating] = useState(false);
   const [isHotRoute, setIsHotRoute] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -84,6 +85,27 @@ const App: React.FC = () => {
       setErrorMessage("Couldn't enhance the image. Please try again.");
     } finally {
       setIsEnhancing(false);
+    }
+  };
+
+  const handleRegenerate = async () => {
+    if (!currentImageData) return;
+    setIsRegenerating(true);
+    try {
+      const regenerated = await regenerateColoringPage(currentImageData);
+      const regeneratedFileName = `${(currentFileName.replace(/\.png$/i, '').replace(/-fixed$/i, '') || 'kierans-art')}-fixed.png`;
+      const previewUrl = regenerated.previewUrl || regenerated.url;
+      setCurrentImageData(previewUrl);
+      setCurrentImageUrl(regenerated.url || null);
+      setCurrentFileName(regeneratedFileName);
+      if (!regenerated.url) {
+        void persistImage(previewUrl, regeneratedFileName);
+      }
+    } catch (error) {
+      console.error(error);
+      setErrorMessage("Couldn't fix the coloring. Please try again.");
+    } finally {
+      setIsRegenerating(false);
     }
   };
 
@@ -181,6 +203,8 @@ const App: React.FC = () => {
                 onEdit={handleOpenEditor}
                 onEnhance={handleEnhanceDetail}
                 isEnhancing={isEnhancing}
+                onRegenerate={handleRegenerate}
+                isRegenerating={isRegenerating}
               />
             </motion.div>
           )}

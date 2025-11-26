@@ -101,7 +101,9 @@ function calculateHotScore(
     return (wilson * wilsonWeight) + (timeBoost * timeWeight) + newItemBonus + engagementBonus;
 }
 
-// GET /api/hot - Get images sorted by hot score (Wilson + time decay)
+// GET /api/hot - Get images with curated ordering:
+// First page: Top 3 by votes, then 5 fresh images, then more highly voted
+// Subsequent pages: Continue with highly voted images
 export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
     try {
         const url = new URL(request.url);
@@ -129,7 +131,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
             GROUP BY gi.id
         `).bind(ip).all();
 
-        // Calculate hot_score for each image and sort
+        // Calculate hot_score for each image
         const allImages: ImageWithRating[] = (result.results || []).map((row: any) => {
             const hotScore = calculateHotScore(
                 row.hot_votes,
@@ -151,15 +153,54 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
             };
         });
 
-        // Sort by hot_score descending
-        allImages.sort((a, b) => b.hot_score - a.hot_score);
+        // Build curated ordering for first page:
+        // 1. Top 3 by total votes (most popular)
+        // 2. 5 fresh images (newest with < 5 votes, less than 48 hours old)
+        // 3. Remaining images sorted by hot_score
+        
+        const TOP_VOTED_COUNT = 3;
+        const FRESH_COUNT = 5;
+        const FRESH_MAX_VOTES = 5;
+        const FRESH_MAX_AGE_HOURS = 48;
+        
+        // Sort by total votes to get top voted
+        const byVotes = [...allImages].sort((a, b) => {
+            // Primary: total votes descending
+            if (b.total_votes !== a.total_votes) return b.total_votes - a.total_votes;
+            // Secondary: rating descending
+            return b.rating - a.rating;
+        });
+        
+        // Get top 3 most voted
+        const topVoted = byVotes.slice(0, TOP_VOTED_COUNT);
+        const topVotedIds = new Set(topVoted.map(img => img.id));
+        
+        // Get fresh images (new, few votes, not in top 3)
+        const freshCutoff = now - (FRESH_MAX_AGE_HOURS * 60 * 60 * 1000);
+        const freshImages = allImages
+            .filter(img => 
+                !topVotedIds.has(img.id) && 
+                img.total_votes < FRESH_MAX_VOTES &&
+                img.created_at > freshCutoff
+            )
+            .sort((a, b) => b.created_at - a.created_at) // Newest first
+            .slice(0, FRESH_COUNT);
+        const freshIds = new Set(freshImages.map(img => img.id));
+        
+        // Get remaining images sorted by hot_score
+        const remaining = allImages
+            .filter(img => !topVotedIds.has(img.id) && !freshIds.has(img.id))
+            .sort((a, b) => b.hot_score - a.hot_score);
+        
+        // Combine: top 3 + 5 fresh + remaining by hot_score
+        const curatedOrder = [...topVoted, ...freshImages, ...remaining];
 
         // Apply pagination
-        const paginatedImages = allImages.slice(offset, offset + limit);
+        const paginatedImages = curatedOrder.slice(offset, offset + limit);
 
         return jsonResponse({
             images: paginatedImages,
-            total: allImages.length,
+            total: curatedOrder.length,
             limit,
             offset,
         });

@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronLeft, Paintbrush, Sparkles, Download, Share2, Printer } from 'lucide-react';
+import { ChevronLeft, Paintbrush, Sparkles, Download, Share2, Printer, RefreshCw } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { clsx } from 'clsx';
 
@@ -10,9 +10,11 @@ interface PreviewProps {
   onEdit: () => void;
   onEnhance: () => void;
   isEnhancing: boolean;
+  onRegenerate: () => void;
+  isRegenerating: boolean;
 }
 
-export const Preview: React.FC<PreviewProps> = ({ imageUrl, fileName, onBack, onEdit, onEnhance, isEnhancing }) => {
+export const Preview: React.FC<PreviewProps> = ({ imageUrl, fileName, onBack, onEdit, onEnhance, isEnhancing, onRegenerate, isRegenerating }) => {
   const handleDownload = async () => {
     try {
       // Fetch the image as a blob to ensure proper download across all browsers
@@ -141,12 +143,13 @@ export const Preview: React.FC<PreviewProps> = ({ imageUrl, fileName, onBack, on
                 
                 <button
                     onClick={onEnhance}
-                    disabled={isEnhancing}
+                    disabled={isEnhancing || isRegenerating}
                     className={clsx(
                         "w-full py-4 px-4 rounded-2xl border-2 border-dashed flex items-center gap-4 transition-all group text-left",
                         isEnhancing 
                             ? "border-purple-500/50 bg-purple-500/10 cursor-not-allowed" 
-                            : "border-slate-600 hover:border-purple-400 hover:bg-slate-700/50"
+                            : "border-slate-600 hover:border-purple-400 hover:bg-slate-700/50",
+                        isRegenerating && "opacity-50 cursor-not-allowed"
                     )}
                 >
                     <div className={clsx(
@@ -158,6 +161,29 @@ export const Preview: React.FC<PreviewProps> = ({ imageUrl, fileName, onBack, on
                     <div>
                         <div className="font-bold text-slate-200 group-hover:text-white">Enhance Details</div>
                         <div className="text-xs text-slate-400">Sharpen lines & add patterns</div>
+                    </div>
+                </button>
+                
+                <button
+                    onClick={onRegenerate}
+                    disabled={isRegenerating || isEnhancing}
+                    className={clsx(
+                        "w-full py-4 px-4 rounded-2xl border-2 border-dashed flex items-center gap-4 transition-all group text-left",
+                        isRegenerating 
+                            ? "border-orange-500/50 bg-orange-500/10 cursor-not-allowed" 
+                            : "border-slate-600 hover:border-orange-400 hover:bg-slate-700/50",
+                        isEnhancing && "opacity-50 cursor-not-allowed"
+                    )}
+                >
+                    <div className={clsx(
+                        "w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-colors",
+                        isRegenerating ? "bg-orange-500/20 text-orange-300" : "bg-slate-700 text-slate-300 group-hover:bg-orange-500 group-hover:text-white"
+                    )}>
+                        {isRegenerating ? <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1 }}><RefreshCw size={20} /></motion.div> : <RefreshCw size={20} />}
+                    </div>
+                    <div>
+                        <div className="font-bold text-slate-200 group-hover:text-white">Fix Coloring</div>
+                        <div className="text-xs text-slate-400">Remove pre-colored areas</div>
                     </div>
                 </button>
             </motion.div>

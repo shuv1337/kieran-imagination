@@ -81,3 +81,21 @@ export const improvePrompt = async (prompt: string): Promise<string> => {
   const data = await response.json();
   return data.improvedPrompt;
 };
+
+export const regenerateColoringPage = async (currentImage: string): Promise<GeneratedImage> => {
+  const response = await fetch('/api/edit', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      currentImage,
+      instruction: 'This image has coloring or shading that should not be there. Convert it into a proper black-and-white coloring page with ONLY pure black outlines on a pure white background. Remove ALL colors, shading, gradients, and filled-in areas. Every shape should be an empty outline ready to be colored in by a child.',
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+    throw new Error(error.error || 'Regeneration failed');
+  }
+
+  return response.json();
+};

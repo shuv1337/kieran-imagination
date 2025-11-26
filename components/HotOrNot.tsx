@@ -112,22 +112,31 @@ export const HotOrNot: React.FC<HotOrNotProps> = () => {
 
   const totalPages = Math.ceil(total / ITEMS_PER_PAGE);
 
+  // Constants matching backend curated ordering
+  const TOP_VOTED_COUNT = 3;
+  const FRESH_COUNT = 5;
+
   const getRankBadge = (index: number) => {
-    const rank = page * ITEMS_PER_PAGE + index + 1;
-    if (rank === 1) return { icon: Trophy, color: 'from-yellow-400 to-amber-500', label: '#1' };
-    if (rank === 2) return { icon: Trophy, color: 'from-slate-300 to-slate-400', label: '#2' };
-    if (rank === 3) return { icon: Trophy, color: 'from-amber-600 to-amber-700', label: '#3' };
+    const absoluteIndex = page * ITEMS_PER_PAGE + index;
+    
+    // Top 3 most voted (positions 0-2 on first page)
+    if (absoluteIndex === 0) return { icon: Trophy, color: 'from-yellow-400 to-amber-500', label: '#1 Top' };
+    if (absoluteIndex === 1) return { icon: Trophy, color: 'from-slate-300 to-slate-400', label: '#2 Top' };
+    if (absoluteIndex === 2) return { icon: Trophy, color: 'from-amber-600 to-amber-700', label: '#3 Top' };
+    
+    // Fresh images (positions 3-7 on first page)
+    if (absoluteIndex >= TOP_VOTED_COUNT && absoluteIndex < TOP_VOTED_COUNT + FRESH_COUNT) {
+      return { icon: Sparkles, color: 'from-green-400 to-emerald-500', label: 'FRESH' };
+    }
+    
     return null;
   };
 
-  const getHotness = (rating: number, totalVotes: number, createdAt: number) => {
-    const hoursOld = (Date.now() - createdAt) / (1000 * 60 * 60);
+  const getHotness = (rating: number, totalVotes: number, createdAt: number, absoluteIndex: number) => {
+    // Don't show hotness label for items that already have a rank badge (top 3 + fresh)
+    const hasBadge = absoluteIndex < TOP_VOTED_COUNT + FRESH_COUNT;
     
-    // Show "FRESH" badge for images less than 24 hours old with few votes
-    if (hoursOld < 24 && totalVotes < 5) {
-      return { level: 'fresh', color: 'text-green-400', label: 'FRESH' };
-    }
-    if (totalVotes === 0) return { level: 'new', color: 'text-slate-400', label: 'NEW' };
+    if (totalVotes === 0) return { level: 'new', color: 'text-slate-400', label: hasBadge ? '' : 'NEW' };
     
     const ratio = totalVotes > 0 ? (rating / totalVotes + 1) / 2 : 0.5;
     if (ratio > 0.8) return { level: 'fire', color: 'text-orange-500', label: 'ON FIRE!' };
@@ -174,7 +183,7 @@ export const HotOrNot: React.FC<HotOrNotProps> = () => {
           </p>
           <div className="flex items-center justify-center gap-2 mt-2 text-sm text-slate-500">
             <TrendingUp size={16} />
-            <span>Sorted by hot score (popularity + freshness)</span>
+            <span>Top voted, then fresh uploads, then trending</span>
           </div>
         </motion.div>
       </header>
@@ -212,8 +221,9 @@ export const HotOrNot: React.FC<HotOrNotProps> = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               <AnimatePresence mode="popLayout">
                 {images.map((image, index) => {
+                  const absoluteIndex = page * ITEMS_PER_PAGE + index;
                   const rankBadge = getRankBadge(index);
-                  const hotness = getHotness(image.rating, image.total_votes, image.created_at);
+                  const hotness = getHotness(image.rating, image.total_votes, image.created_at, absoluteIndex);
                   const voteAnim = voteAnimations[image.id];
                   
                   return (
