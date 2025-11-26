@@ -28,15 +28,17 @@ export const Generator: React.FC<GeneratorProps> = ({ onImageGenerated }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const inputAreaRef = useRef<HTMLDivElement>(null);
 
-  // Progress stages with timing (typical generation takes 15-30s)
+  // Progress stages with timing (typical generation takes 15-30s, +15s for image uploads)
+  const imageUploadDelay = uploadedImage ? 15 : 0;
   const progressStages = [
     { threshold: 0, message: "Starting the magic...", progress: 5 },
     { threshold: 3, message: "Imagining your idea...", progress: 15 },
-    { threshold: 6, message: "Sketching outlines...", progress: 30 },
-    { threshold: 10, message: "Adding details...", progress: 50 },
-    { threshold: 15, message: "Perfecting the lines...", progress: 70 },
-    { threshold: 20, message: "Almost ready...", progress: 85 },
-    { threshold: 25, message: "Final touches...", progress: 95 },
+    { threshold: 6 + imageUploadDelay, message: "Sketching outlines...", progress: 30 },
+    { threshold: 10 + imageUploadDelay, message: "Reticulating splines...", progress: 45 },
+    { threshold: 14 + imageUploadDelay, message: "Adding details...", progress: 60 },
+    { threshold: 18 + imageUploadDelay, message: "Perfecting the lines...", progress: 75 },
+    { threshold: 22 + imageUploadDelay, message: "Almost ready...", progress: 88 },
+    { threshold: 26 + imageUploadDelay, message: "Final touches...", progress: 95 },
   ];
 
   const getCurrentStage = () => {
