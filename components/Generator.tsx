@@ -474,6 +474,11 @@ export const Generator: React.FC<GeneratorProps> = ({ onImageGenerated }) => {
                             </>
                         )}
                     </motion.button>
+                    {!isGenerating && (
+                        <p className="text-center text-sm text-slate-400 mt-2">
+                            Generation typically takes 30-45 seconds
+                        </p>
+                    )}
                 </div>
             </div>
         </div>
