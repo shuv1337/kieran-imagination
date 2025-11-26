@@ -1,6 +1,35 @@
+// Cloudflare Images binding types
+interface ImagesTransformOptions {
+    width?: number;
+    height?: number;
+    fit?: 'scale-down' | 'contain' | 'cover' | 'crop' | 'pad';
+    quality?: number;
+}
+
+interface ImagesOutputOptions {
+    format?: 'image/png' | 'image/jpeg' | 'image/webp' | 'image/avif';
+}
+
+interface ImagesTransformable {
+    transform(options: ImagesTransformOptions): ImagesTransformable;
+    output(options: ImagesOutputOptions): Promise<{ response(): Promise<Response> }>;
+}
+
+interface ImagesInfoResult {
+    width: number;
+    height: number;
+    format: string;
+}
+
+interface ImagesBinding {
+    input(data: ArrayBuffer | ReadableStream<Uint8Array>): ImagesTransformable;
+    info(data: ArrayBuffer | ReadableStream<Uint8Array>): Promise<ImagesInfoResult>;
+}
+
 export interface Env {
     IMAGES_BUCKET?: R2Bucket;
     DB: D1Database;
+    IMAGES?: ImagesBinding;
 }
 
 export interface PersistedImage {
@@ -46,7 +75,8 @@ export class HttpError extends Error {
 }
 
 export const MAX_PROMPT_LENGTH = 1000;
-export const MAX_BASE64_BYTES = 10 * 1024 * 1024; // 10MB
+export const MAX_BASE64_BYTES = 50 * 1024 * 1024; // 50MB - we accept larger images and resize them down
+export const TARGET_IMAGE_MAX_DIMENSION = 1536; // Max dimension for Gemini (keeps costs reasonable)
 
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX_REQUESTS = 20;
@@ -238,4 +268,85 @@ export async function saveImageToR2AndDb(
         }
         throw error;
     }
+}
+
+export interface ResizeResult {
+    base64Data: string;
+    originalWidth: number;
+    originalHeight: number;
+    newWidth: number;
+    newHeight: number;
+    wasResized: boolean;
+}
+
+/**
+ * Resizes an image if it exceeds the target max dimension using Cloudflare Images.
+ * Returns the resized base64 data, or the original if no resize was needed.
+ */
+export async function resizeImageIfNeeded(
+    imagesBinding: ImagesBinding,
+    base64Data: string,
+    maxDimension: number = TARGET_IMAGE_MAX_DIMENSION
+): Promise<ResizeResult> {
+    // Decode base64 to ArrayBuffer
+    const binaryString = atob(base64Data);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+    }
+    const arrayBuffer = bytes.buffer as ArrayBuffer;
+
+    // Get image info to check dimensions
+    const info = await imagesBinding.info(arrayBuffer);
+    const { width: originalWidth, height: originalHeight } = info;
+
+    // Check if resize is needed
+    if (originalWidth <= maxDimension && originalHeight <= maxDimension) {
+        return {
+            base64Data,
+            originalWidth,
+            originalHeight,
+            newWidth: originalWidth,
+            newHeight: originalHeight,
+            wasResized: false,
+        };
+    }
+
+    // Calculate new dimensions maintaining aspect ratio
+    let newWidth: number;
+    let newHeight: number;
+    if (originalWidth > originalHeight) {
+        newWidth = maxDimension;
+        newHeight = Math.round((originalHeight / originalWidth) * maxDimension);
+    } else {
+        newHeight = maxDimension;
+        newWidth = Math.round((originalWidth / originalHeight) * maxDimension);
+    }
+
+    // Resize the image using Cloudflare Images
+    const resizedResponse = await (
+        await imagesBinding
+            .input(arrayBuffer)
+            .transform({ width: newWidth, height: newHeight, fit: 'scale-down' })
+            .output({ format: 'image/png' })
+    ).response();
+
+    // Convert response to base64
+    const resizedBuffer = await resizedResponse.arrayBuffer();
+    const resizedBytes = new Uint8Array(resizedBuffer);
+    let resizedBase64 = '';
+    const chunkSize = 8192;
+    for (let i = 0; i < resizedBytes.length; i += chunkSize) {
+        resizedBase64 += String.fromCharCode(...resizedBytes.slice(i, i + chunkSize));
+    }
+    resizedBase64 = btoa(resizedBase64);
+
+    return {
+        base64Data: resizedBase64,
+        originalWidth,
+        originalHeight,
+        newWidth,
+        newHeight,
+        wasResized: true,
+    };
 }

@@ -8,14 +8,43 @@ import {
     logError,
     logLLMRequest,
     logRequest,
+    resizeImageIfNeeded,
     saveImageToR2AndDb,
     validatePayload,
 } from "../utils";
+
+interface ImagesTransformOptions {
+    width?: number;
+    height?: number;
+    fit?: 'scale-down' | 'contain' | 'cover' | 'crop' | 'pad';
+    quality?: number;
+}
+
+interface ImagesOutputOptions {
+    format?: 'image/png' | 'image/jpeg' | 'image/webp' | 'image/avif';
+}
+
+interface ImagesTransformable {
+    transform(options: ImagesTransformOptions): ImagesTransformable;
+    output(options: ImagesOutputOptions): Promise<{ response(): Promise<Response> }>;
+}
+
+interface ImagesInfoResult {
+    width: number;
+    height: number;
+    format: string;
+}
+
+interface ImagesBinding {
+    input(data: ArrayBuffer | ReadableStream<Uint8Array>): ImagesTransformable;
+    info(data: ArrayBuffer | ReadableStream<Uint8Array>): Promise<ImagesInfoResult>;
+}
 
 interface Env {
     GEMINI_API_KEY: string;
     IMAGES_BUCKET: R2Bucket;
     DB: D1Database;
+    IMAGES?: ImagesBinding;
 }
 
 export const onRequestPost: PagesFunction<Env> = async ({ request, env, waitUntil }) => {
@@ -51,8 +80,22 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, waitUnti
             throw error;
         }
 
-        const base64Data = getBase64FromUrl(currentImage);
+        let base64Data = getBase64FromUrl(currentImage);
         validatePayload(instruction, base64Data);
+
+        // Resize large images to reduce costs and improve performance
+        if (env.IMAGES) {
+            try {
+                const resizeResult = await resizeImageIfNeeded(env.IMAGES, base64Data);
+                base64Data = resizeResult.base64Data;
+                if (resizeResult.wasResized) {
+                    console.log(`Resized image from ${resizeResult.originalWidth}x${resizeResult.originalHeight} to ${resizeResult.newWidth}x${resizeResult.newHeight}`);
+                }
+            } catch (resizeError) {
+                // Log but continue with original image if resize fails
+                logError('image-resize', resizeError, { endpoint: '/api/edit' });
+            }
+        }
 
         const ai = new GoogleGenAI({ apiKey: env.GEMINI_API_KEY });
         const model = 'gemini-3-pro-image-preview';
