@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Flame, ThumbsDown, Trophy, TrendingUp, Loader2, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
+import { Flame, ThumbsDown, Trophy, TrendingUp, Loader2, ChevronLeft, ChevronRight, Sparkles, X } from 'lucide-react';
 
 interface ImageWithRating {
   id: string;
@@ -27,6 +27,7 @@ export const HotOrNot: React.FC<HotOrNotProps> = () => {
   const [page, setPage] = useState(0);
   const [total, setTotal] = useState(0);
   const [voteAnimations, setVoteAnimations] = useState<Record<string, 'hot' | 'not' | null>>({});
+  const [selectedImage, setSelectedImage] = useState<ImageWithRating | null>(null);
   
   const ITEMS_PER_PAGE = 12;
 
@@ -49,6 +50,18 @@ export const HotOrNot: React.FC<HotOrNotProps> = () => {
   useEffect(() => {
     fetchImages();
   }, [fetchImages]);
+
+  // Handle escape key to close modal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && selectedImage) {
+        setSelectedImage(null);
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedImage]);
 
   const handleVote = async (imageId: string, voteType: 'hot' | 'not') => {
     if (votingId) return;
@@ -251,7 +264,10 @@ export const HotOrNot: React.FC<HotOrNotProps> = () => {
                         </div>
 
                         {/* Image */}
-                        <div className="aspect-square relative overflow-hidden bg-white">
+                        <div 
+                          className="aspect-square relative overflow-hidden bg-white cursor-pointer"
+                          onClick={() => setSelectedImage(image)}
+                        >
                           <img
                             src={image.url}
                             alt={image.prompt}
@@ -417,6 +433,53 @@ export const HotOrNot: React.FC<HotOrNotProps> = () => {
       <footer className="text-center py-8 text-slate-500 text-sm">
         <p>Vote responsibly. Every coloring page has feelings.</p>
       </footer>
+
+      {/* Full-size Image Modal */}
+      <AnimatePresence>
+        {selectedImage && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+            onClick={() => setSelectedImage(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="relative max-w-4xl max-h-[90vh] w-full"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Close Button */}
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={() => setSelectedImage(null)}
+                className="absolute -top-12 right-0 p-2 rounded-full bg-slate-800/80 text-white hover:bg-slate-700 transition-colors z-10"
+                aria-label="Close modal"
+              >
+                <X size={24} />
+              </motion.button>
+
+              {/* Image Container */}
+              <div className="bg-white rounded-2xl overflow-hidden shadow-2xl">
+                <img
+                  src={selectedImage.url}
+                  alt={selectedImage.prompt}
+                  className="w-full h-auto max-h-[85vh] object-contain"
+                />
+              </div>
+
+              {/* Image prompt */}
+              <p className="mt-4 text-center text-slate-300 text-sm max-w-2xl mx-auto">
+                {selectedImage.prompt}
+              </p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
