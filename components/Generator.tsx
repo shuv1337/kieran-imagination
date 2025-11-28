@@ -190,7 +190,7 @@ export const Generator: React.FC<GeneratorProps> = ({ onImageGenerated }) => {
 
     setIsGenerating(true);
     try {
-      const effectivePrompt = prompt || "Convert this image into a detailed coloring page.";
+      const effectivePrompt = prompt || "Convert this image into a detailed coloring page. Preserve all original details and outlines.";
       const result = await generateColoringPage(effectivePrompt, uploadedImage || undefined);
       const fileName = createFileName(effectivePrompt);
       const preview = result.previewUrl || result.url;
