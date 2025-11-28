@@ -134,7 +134,7 @@ export const Preview: React.FC<PreviewProps> = ({ imageUrl, fileName, onBack, on
                 initial={{ x: 50, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
                 transition={{ delay: 0.4 }}
-                className="bg-slate-800/50 backdrop-blur border border-slate-700 rounded-3xl p-6 flex flex-col gap-4"
+                className="bg-slate-800/50 backdrop-blur border border-slate-700 rounded-3xl p-6 flex flex-col gap-4 order-2 lg:order-1"
             >
                 <h3 className="text-xl font-bold text-white flex items-center gap-2">
                     <Sparkles className="text-yellow-400" /> 
@@ -192,7 +192,7 @@ export const Preview: React.FC<PreviewProps> = ({ imageUrl, fileName, onBack, on
                 initial={{ x: 50, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
                 transition={{ delay: 0.5 }}
-                className="bg-slate-800/50 backdrop-blur border border-slate-700 rounded-3xl p-6 flex flex-col gap-3"
+                className="bg-slate-800/50 backdrop-blur border border-slate-700 rounded-3xl p-6 flex flex-col gap-3 order-1 lg:order-2"
             >
                 <h3 className="text-xl font-bold text-white">Share & Save</h3>
                 
