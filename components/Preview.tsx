@@ -114,15 +114,22 @@ export const Preview: React.FC<PreviewProps> = ({ imageUrl, fileName, onBack, on
                 {/* Checkered background for transparency */}
                 <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(#000 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
                 
-                <img
-                    src={imageUrl}
-                    alt="Generated coloring page"
-                    className="relative max-w-full max-h-[70vh] object-contain drop-shadow-xl z-10"
-                />
+                <a
+                    href={imageUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="relative z-10 cursor-pointer"
+                >
+                    <img
+                        src={imageUrl}
+                        alt="Generated coloring page"
+                        className="max-w-full max-h-[70vh] object-contain drop-shadow-xl"
+                    />
+                </a>
 
                 {/* Zoom hint overlay */}
                 <div className="absolute bottom-4 right-4 bg-black/50 backdrop-blur text-white px-3 py-1 rounded-full text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity">
-                    High Quality Preview
+                    Click to view full size
                 </div>
             </div>
         </motion.div>
