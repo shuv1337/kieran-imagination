@@ -287,7 +287,7 @@ export const Generator: React.FC<GeneratorProps> = ({ onImageGenerated }) => {
                                     whileTap={{ scale: 0.9 }}
                                     onClick={handleImprovePrompt}
                                     disabled={isImprovingPrompt}
-                                    className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full text-white font-bold flex items-center gap-2 shadow-lg hover:shadow-emerald-500/50 transition-all disabled:opacity-70"
+                                    className="px-3 sm:px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full text-white font-bold flex items-center gap-1.5 sm:gap-2 shadow-lg hover:shadow-emerald-500/50 transition-all disabled:opacity-70 text-sm sm:text-base"
                                 >
                                     {isImprovingPrompt ? (
                                         <motion.div
@@ -299,7 +299,7 @@ export const Generator: React.FC<GeneratorProps> = ({ onImageGenerated }) => {
                                     ) : (
                                         <Zap size={18} className="text-yellow-300" />
                                     )}
-                                    <span className="hidden sm:inline">{isImprovingPrompt ? 'Improving...' : 'Improve Prompt'}</span>
+                                    <span>{isImprovingPrompt ? 'Improving...' : 'Improve'}</span>
                                 </motion.button>
                             )}
                         </AnimatePresence>
@@ -309,9 +309,10 @@ export const Generator: React.FC<GeneratorProps> = ({ onImageGenerated }) => {
                             whileHover={{ scale: 1.1, rotate: 5 }}
                             whileTap={{ scale: 0.9 }}
                             onClick={handleLuckyPrompt}
-                            className="px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full text-white font-bold flex items-center gap-2 shadow-lg hover:shadow-purple-500/50 transition-all"
+                            className="px-3 sm:px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full text-white font-bold flex items-center gap-1.5 sm:gap-2 shadow-lg hover:shadow-purple-500/50 transition-all text-sm sm:text-base"
                         >
                             <Sparkles size={18} className="text-yellow-300" />
+                            <span className="sm:hidden">Surprise Me</span>
                             <span className="hidden sm:inline">I'm Feeling Lucky!</span>
                         </motion.button>
                     </div>
