@@ -1,6 +1,6 @@
-import React from 'react';
-import { ChevronLeft, Paintbrush, Sparkles, Download, Share2, Printer, RefreshCw } from 'lucide-react';
-import { motion } from 'framer-motion';
+import React, { useState } from 'react';
+import { ChevronLeft, Paintbrush, Sparkles, Download, Printer, RefreshCw, X, ZoomIn, Share2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { clsx } from 'clsx';
 
 interface PreviewProps {
@@ -15,6 +15,8 @@ interface PreviewProps {
 }
 
 export const Preview: React.FC<PreviewProps> = ({ imageUrl, fileName, onBack, onEdit, onEnhance, isEnhancing, onRegenerate, isRegenerating }) => {
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
   const handleDownload = async () => {
     try {
       // Fetch the image as a blob to ensure proper download across all browsers
@@ -35,6 +37,40 @@ export const Preview: React.FC<PreviewProps> = ({ imageUrl, fileName, onBack, on
       console.error('Download failed:', error);
       // Fallback: open image in new tab
       window.open(imageUrl, '_blank');
+    }
+  };
+
+  const handleShare = async () => {
+    try {
+      // Fetch the image as a blob for sharing
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      const file = new File([blob], fileName, { type: blob.type });
+
+      // Check if Web Share API with files is supported
+      if (navigator.canShare?.({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: 'My Coloring Page',
+          text: 'Check out this coloring page I made with Kieran\'s Imagination!',
+        });
+      } else if (navigator.share) {
+        // Fallback to sharing just the URL if file sharing isn't supported
+        await navigator.share({
+          title: 'My Coloring Page',
+          text: 'Check out this coloring page I made with Kieran\'s Imagination!',
+          url: window.location.href,
+        });
+      } else {
+        // Fallback for browsers without Web Share API - copy URL to clipboard
+        await navigator.clipboard.writeText(window.location.href);
+        alert('Link copied to clipboard!');
+      }
+    } catch (error) {
+      // User cancelled or share failed
+      if ((error as Error).name !== 'AbortError') {
+        console.error('Share failed:', error);
+      }
     }
   };
 
@@ -116,7 +152,7 @@ export const Preview: React.FC<PreviewProps> = ({ imageUrl, fileName, onBack, on
                 
                 <button
                     type="button"
-                    onClick={() => window.open(imageUrl, '_blank', 'noopener,noreferrer')}
+                    onClick={() => setIsFullscreen(true)}
                     className="relative z-10 cursor-pointer"
                 >
                     <img
@@ -127,8 +163,8 @@ export const Preview: React.FC<PreviewProps> = ({ imageUrl, fileName, onBack, on
                 </button>
 
                 {/* Zoom hint overlay */}
-                <div className="absolute bottom-4 right-4 bg-black/50 backdrop-blur text-white px-3 py-1 rounded-full text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity">
-                    Click to view full size
+                <div className="absolute bottom-4 right-4 bg-black/50 backdrop-blur text-white px-3 py-1 rounded-full text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1.5">
+                    <ZoomIn size={14} /> Tap to view full size
                 </div>
             </div>
         </motion.div>
@@ -203,6 +239,13 @@ export const Preview: React.FC<PreviewProps> = ({ imageUrl, fileName, onBack, on
                 <h3 className="text-xl font-bold text-white">Share & Save</h3>
                 
                 <button 
+                    onClick={handleShare}
+                    className="w-full py-3 px-4 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-green-600/20 transition-all hover:-translate-y-0.5"
+                >
+                    <Share2 size={20} /> Share Image
+                </button>
+
+                <button 
                     onClick={handleDownload}
                     className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20 transition-all hover:-translate-y-0.5"
                 >
@@ -220,6 +263,51 @@ export const Preview: React.FC<PreviewProps> = ({ imageUrl, fileName, onBack, on
         </div>
 
       </div>
+
+      {/* Fullscreen Image Modal */}
+      <AnimatePresence>
+        {isFullscreen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-4"
+            onClick={() => setIsFullscreen(false)}
+          >
+            <button
+              onClick={() => setIsFullscreen(false)}
+              className="absolute top-4 right-4 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors z-10"
+            >
+              <X size={24} />
+            </button>
+            
+            <motion.img
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              src={imageUrl}
+              alt="Generated coloring page - full size"
+              className="max-w-full max-h-full object-contain"
+              onClick={(e) => e.stopPropagation()}
+            />
+
+            <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-3 px-4">
+              <button
+                onClick={(e) => { e.stopPropagation(); handleShare(); }}
+                className="px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white rounded-full font-bold flex items-center gap-2 shadow-lg"
+              >
+                <Share2 size={18} /> Share
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); handleDownload(); }}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-full font-bold flex items-center gap-2 shadow-lg"
+              >
+                <Download size={18} /> Download
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
