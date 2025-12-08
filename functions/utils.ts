@@ -50,7 +50,7 @@ export interface RequestLogEntry {
 }
 
 export interface LLMRequestLogEntry {
-    requestType: 'generate' | 'edit' | 'upscale' | 'suggestions' | 'suggestions-seed' | 'improve-prompt';
+    requestType: 'generate' | 'edit' | 'upscale' | 'suggestions' | 'suggestions-seed' | 'improve-prompt' | 'card-generate';
     model: string;
     prompt?: string;
     hasInputImage?: boolean;

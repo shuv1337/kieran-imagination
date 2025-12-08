@@ -4,6 +4,7 @@ import { Generator } from './components/Generator';
 import { Editor } from './components/Editor';
 import { Preview } from './components/Preview';
 import { HotOrNot } from './components/HotOrNot';
+import { TradingCardGenerator } from './components/cards/TradingCardGenerator';
 import Background from './components/Background';
 import { ErrorModal } from './components/ErrorModal';
 import { AppView } from './types';
@@ -19,13 +20,21 @@ const App: React.FC = () => {
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [isHotRoute, setIsHotRoute] = useState(false);
+  const [isCardsRoute, setIsCardsRoute] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Simple route detection for /hot and /hotornot
+  // Check if cards feature is enabled (via query param or /cards route)
+  const isCardsEnabled = () => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('cards') === '1' || window.location.pathname === '/cards';
+  };
+
+  // Simple route detection for /hot, /hotornot, and /cards
   useEffect(() => {
     const checkRoute = () => {
       const path = window.location.pathname;
       setIsHotRoute(path === '/hot' || path === '/hotornot');
+      setIsCardsRoute(isCardsEnabled());
     };
     checkRoute();
     window.addEventListener('popstate', checkRoute);
@@ -112,6 +121,11 @@ const App: React.FC = () => {
   // Render HotOrNot page for /hot route
   if (isHotRoute) {
     return <HotOrNot />;
+  }
+
+  // Render Trading Card Generator for /cards route
+  if (isCardsRoute) {
+    return <TradingCardGenerator />;
   }
 
   return (

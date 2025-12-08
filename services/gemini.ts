@@ -99,3 +99,80 @@ export const regenerateColoringPage = async (currentImage: string): Promise<Gene
 
   return response.json();
 };
+
+// Trading Card types
+export interface CardSpec {
+  prompt: string;
+  theme: 'pokemon' | 'custom';
+  rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
+  cardName: string;
+  baseImage?: string;
+}
+
+export interface TradingCardResponse {
+  url: string;
+  previewUrl: string;
+  key: string;
+  cardId: string;
+  theme: string;
+  rarity: string;
+  cardName: string;
+  promptUsed: string;
+}
+
+export const generateTradingCard = async (spec: CardSpec): Promise<TradingCardResponse> => {
+  const response = await fetch('/api/cards/generate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(spec),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+    throw new Error(error.error || 'Card generation failed');
+  }
+
+  return response.json();
+};
+
+// Card edit actions
+export type CardEditAction = 'fix-text' | 'new-attacks';
+
+export interface CardEditResponse {
+  url: string;
+  previewUrl: string;
+  key: string;
+  action: CardEditAction;
+}
+
+export const editTradingCard = async (
+  currentImage: string,
+  action: CardEditAction,
+  cardName: string,
+  theme?: string
+): Promise<CardEditResponse> => {
+  const response = await fetch('/api/cards/edit', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ currentImage, action, cardName, theme }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+    throw new Error(error.error || 'Card edit failed');
+  }
+
+  return response.json();
+};
+
+export const fixCardText = async (currentImage: string, cardName: string): Promise<CardEditResponse> => {
+  return editTradingCard(currentImage, 'fix-text', cardName);
+};
+
+export const generateNewAttacks = async (
+  currentImage: string, 
+  cardName: string, 
+  theme?: string
+): Promise<CardEditResponse> => {
+  return editTradingCard(currentImage, 'new-attacks', cardName, theme);
+};
