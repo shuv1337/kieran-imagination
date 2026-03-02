@@ -5,9 +5,6 @@ pages_build_output_dir = "dist"
 [vars]
 GEMINI_IMAGE_MODEL = "gemini-3-pro-image-preview"
 
-[images]
-binding = "IMAGES"
-
 [[r2_buckets]]
 binding = "IMAGES_BUCKET"
 bucket_name = "kieran-images"
