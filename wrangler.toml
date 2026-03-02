@@ -2,9 +2,6 @@ name = "kieran-app"
 compatibility_date = "2025-11-23"
 pages_build_output_dir = "dist"
 
-[vars]
-GEMINI_IMAGE_MODEL = "gemini-3-pro-image-preview"
-
 [[r2_buckets]]
 binding = "IMAGES_BUCKET"
 bucket_name = "kieran-images"
