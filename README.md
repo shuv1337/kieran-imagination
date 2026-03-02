@@ -14,7 +14,9 @@ View your app in AI Studio: https://ai.studio/apps/drive/1dl_BlAvM6WXNkPTJ0mogx9
 
 1. Install dependencies:
    `bun install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
+2. Set your local Cloudflare function vars in `.dev.vars` (copy from `.dev.vars.example`):
+   - `GEMINI_API_KEY=...`
+   - Optional: `GEMINI_IMAGE_MODEL=gemini-3-pro-image-preview`
 3. Run the app:
    `bun run dev`
 4. Run tests:

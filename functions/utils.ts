@@ -30,6 +30,7 @@ export interface Env {
     IMAGES_BUCKET?: R2Bucket;
     DB: D1Database;
     IMAGES?: ImagesBinding;
+    GEMINI_IMAGE_MODEL?: string;
 }
 
 export interface PersistedImage {
@@ -78,6 +79,12 @@ export const MAX_PROMPT_LENGTH = 1000;
 export const MAX_BASE64_BYTES = 50 * 1024 * 1024; // 50MB - we accept larger images and resize them down
 export const RESIZE_THRESHOLD_BYTES = 8 * 1024 * 1024; // 8MB - only resize if image exceeds this (avoids unnecessary resizing)
 export const TARGET_IMAGE_MAX_DIMENSION = 1024; // Max dimension when resizing large images for Gemini
+export const DEFAULT_GEMINI_IMAGE_MODEL = 'gemini-3-pro-image-preview';
+
+export const getGeminiImageModel = (env: { GEMINI_IMAGE_MODEL?: string }): string => {
+    const configured = env.GEMINI_IMAGE_MODEL?.trim();
+    return configured && configured.length > 0 ? configured : DEFAULT_GEMINI_IMAGE_MODEL;
+};
 
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX_REQUESTS = 20;

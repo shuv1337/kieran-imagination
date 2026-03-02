@@ -27,6 +27,7 @@ interface ImagesBinding {
 
 interface Env {
     GEMINI_API_KEY: string;
+    GEMINI_IMAGE_MODEL?: string;
     IMAGES_BUCKET: R2Bucket;
     DB: D1Database;
     ASSETS: Fetcher;

@@ -4,6 +4,7 @@ import {
     enforceRateLimit,
     getBase64FromUrl,
     getClientIp,
+    getGeminiImageModel,
     jsonResponse,
     logError,
     logLLMRequest,
@@ -42,6 +43,7 @@ interface ImagesBinding {
 
 interface Env {
     GEMINI_API_KEY: string;
+    GEMINI_IMAGE_MODEL?: string;
     IMAGES_BUCKET: R2Bucket;
     DB: D1Database;
     IMAGES?: ImagesBinding;
@@ -96,7 +98,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, waitUnti
         }
 
         const ai = new GoogleGenAI({ apiKey: env.GEMINI_API_KEY });
-        const model = 'gemini-3-pro-image-preview';
+        const model = getGeminiImageModel(env);
 
         const fullPrompt = `Redraw this image in higher detail and higher quality. Maintain the exact same composition and subject, but add more subject matter details to the image. Ensure it remains black and white line art.`;
 

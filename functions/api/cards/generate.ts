@@ -4,6 +4,7 @@ import {
     enforceRateLimit,
     getBase64FromUrl,
     getClientIp,
+    getGeminiImageModel,
     jsonResponse,
     logError,
     logLLMRequest,
@@ -134,7 +135,7 @@ export const onRequestPost: PagesFunction<ExtendedEnv> = async ({ request, env, 
         }
 
         const ai = new GoogleGenAI({ apiKey: env.GEMINI_API_KEY });
-        const model = 'gemini-3-pro-image-preview';
+        const model = getGeminiImageModel(env);
 
         const parts: any[] = [];
 

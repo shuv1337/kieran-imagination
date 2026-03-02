@@ -1,1 +1,3 @@
 GEMINI_API_KEY=your-api-key-here
+# Optional: override the default image model used by image endpoints
+GEMINI_IMAGE_MODEL=gemini-3-pro-image-preview
