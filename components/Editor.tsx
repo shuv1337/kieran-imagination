@@ -6,17 +6,31 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { clsx } from 'clsx';
-import { aiEditImage, aiUpscaleImage } from '../services/gemini';
 import { ToolType, PatternType, TextureType } from '../types';
 import { ErrorModal } from './ErrorModal';
+import { uploadFile, runCreationJob, assetUrl } from '../services/jobs';
+import { saveEditorRevision } from '../services/worlds';
 
 interface EditorProps {
     initialImage: string;
     fileName?: string;
     onBack: () => void;
+    /** When set, Save Art uploads + appends a durable artwork revision. */
+    artworkId?: string;
+    worldId?: string;
+    parentRevisionId?: string | null;
+    onSaved?: () => void;
 }
 
-export const Editor: React.FC<EditorProps> = ({ initialImage, fileName, onBack }) => {
+export const Editor: React.FC<EditorProps> = ({
+    initialImage,
+    fileName,
+    onBack,
+    artworkId,
+    worldId,
+    parentRevisionId = null,
+    onSaved,
+}) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const textInputRef = useRef<HTMLInputElement>(null);
 
@@ -354,26 +368,49 @@ export const Editor: React.FC<EditorProps> = ({ initialImage, fileName, onBack }
         setTextInput({ ...textInput, visible: false });
     };
 
-    // --- AI Handlers ---
+    const canvasToBlob = (): Promise<Blob> => {
+        return new Promise((resolve, reject) => {
+            const canvas = canvasRef.current;
+            if (!canvas) {
+                reject(new Error('No canvas'));
+                return;
+            }
+            canvas.toBlob((blob) => {
+                if (blob) resolve(blob);
+                else reject(new Error('Failed to export canvas'));
+            }, 'image/png');
+        });
+    };
+
+    // --- AI Handlers (durable Jobs; no base64 API) ---
 
     const handleAiAction = async (action: 'edit' | 'upscale') => {
         if (!canvasRef.current) return;
+        if (action === 'edit' && !aiPrompt) return;
         setIsProcessing(true);
         try {
-            const current = canvasRef.current.toDataURL('image/png');
-            let result;
-            if (action === 'upscale') {
-                const res = await aiUpscaleImage(current);
-                result = res.previewUrl || res.url;
-            } else {
-                if (!aiPrompt) return;
-                const res = await aiEditImage(current, aiPrompt);
-                result = res.previewUrl || res.url;
-                setAiPrompt('');
+            const blob = await canvasToBlob();
+            const uploaded = await uploadFile(blob, fileName || 'editor.png');
+            const job = await runCreationJob({
+                operation: action === 'upscale' ? 'coloring.enhance' : 'coloring.edit',
+                quality: 'standard',
+                instruction:
+                    action === 'upscale'
+                        ? undefined
+                        : aiPrompt,
+                inputs: [{ assetId: uploaded.assetId, role: 'base', position: 0 }],
+                worldId,
+                artworkId,
+                parentRevisionId: parentRevisionId ?? undefined,
+            });
+            if (job.status !== 'succeeded' || !job.resultAssetId) {
+                throw new Error(job.errorMessage || 'AI job failed');
             }
-
+            if (action === 'edit') setAiPrompt('');
+            const resultUrl = assetUrl(job.resultAssetId);
             const img = new Image();
-            img.src = result;
+            img.crossOrigin = 'anonymous';
+            img.src = resultUrl;
             img.onload = () => {
                 if (canvasRef.current) {
                     canvasRef.current.width = img.width;
@@ -383,12 +420,58 @@ export const Editor: React.FC<EditorProps> = ({ initialImage, fileName, onBack }
                     saveToHistory();
                 }
                 setIsProcessing(false);
-            }
+            };
+            img.onerror = () => {
+                setIsProcessing(false);
+                setErrorMessage('Failed to load AI result image');
+            };
         } catch (e) {
             console.error(e);
             setIsProcessing(false);
-            const message = e instanceof Error ? e.message : "AI Magic failed. Please try again.";
+            const message = e instanceof Error ? e.message : 'AI Magic failed. Please try again.';
             setErrorMessage(message);
+        }
+    };
+
+    const handleSaveArt = async () => {
+        // Download remains local when no artworkId; durable save when world-bound.
+        try {
+            const blob = await canvasToBlob();
+            if (artworkId) {
+                setIsProcessing(true);
+                const uploaded = await uploadFile(blob, fileName || 'editor.png');
+                await saveEditorRevision(artworkId, uploaded.assetId, parentRevisionId ?? null);
+                setIsProcessing(false);
+                onSaved?.();
+                return;
+            }
+            const blobUrl = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.download = fileName || 'kierans-art.png';
+            link.href = blobUrl;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+        } catch (e) {
+            setIsProcessing(false);
+            setErrorMessage(e instanceof Error ? e.message : 'Save failed');
+        }
+    };
+
+    const handleDownloadOnly = async () => {
+        try {
+            const blob = await canvasToBlob();
+            const blobUrl = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.download = fileName || 'kierans-art.png';
+            link.href = blobUrl;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+        } catch (e) {
+            setErrorMessage(e instanceof Error ? e.message : 'Download failed');
         }
     };
 
@@ -417,36 +500,24 @@ export const Editor: React.FC<EditorProps> = ({ initialImage, fileName, onBack }
                         </button>
                     </div>
 
+                    {artworkId && (
+                        <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => void handleDownloadOnly()}
+                            className="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-full text-sm font-bold"
+                        >
+                            Download
+                        </motion.button>
+                    )}
                     <motion.button 
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
-                        onClick={() => {
-                            const dataUrl = canvasRef.current?.toDataURL('image/png');
-                            if (!dataUrl) return;
-                            
-                            // Convert data URL to blob for reliable download
-                            const byteString = atob(dataUrl.split(',')[1]);
-                            const mimeType = 'image/png';
-                            const ab = new ArrayBuffer(byteString.length);
-                            const ia = new Uint8Array(ab);
-                            for (let i = 0; i < byteString.length; i++) {
-                                ia[i] = byteString.charCodeAt(i);
-                            }
-                            const blob = new Blob([ab], { type: mimeType });
-                            const blobUrl = URL.createObjectURL(blob);
-                            
-                            const link = document.createElement('a');
-                            link.download = fileName || 'kierans-art.png';
-                            link.href = blobUrl;
-                            document.body.appendChild(link);
-                            link.click();
-                            document.body.removeChild(link);
-                            
-                            setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
-                        }} 
-                        className="bg-green-500 hover:bg-green-400 text-white px-5 py-2 rounded-full text-sm font-bold flex items-center gap-2 shadow-lg shadow-green-500/20"
+                        onClick={() => void handleSaveArt()} 
+                        disabled={isProcessing}
+                        className="bg-green-500 hover:bg-green-400 text-white px-5 py-2 rounded-full text-sm font-bold flex items-center gap-2 shadow-lg shadow-green-500/20 disabled:opacity-50"
                     >
-                        <Save size={18} /> Save Art
+                        <Save size={18} /> {artworkId ? 'Save Art' : 'Download'}
                     </motion.button>
                 </div>
             </header>

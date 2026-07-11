@@ -1,6 +1,15 @@
 import { CardTheme, CardRarity, CardThemeConfig, CardRarityConfig } from '../../types';
 
 export const THEME_CONFIGS: Record<CardTheme, CardThemeConfig> = {
+  [CardTheme.CREATURE]: {
+    name: 'Creature Card',
+    primaryColor: '#FFD700',
+    secondaryColor: '#FF6B6B',
+    gradientFrom: 'from-yellow-400',
+    gradientTo: 'to-orange-500',
+    badgeIcon: 'Zap',
+    promptPrefix: 'fantasy creature',
+  },
   [CardTheme.POKEMON]: {
     name: 'Creature Card',
     primaryColor: '#FFD700',

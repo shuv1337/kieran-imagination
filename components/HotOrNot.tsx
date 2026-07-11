@@ -37,7 +37,7 @@ export const HotOrNot: React.FC<HotOrNotProps> = () => {
     try {
       const res = await fetch(`/api/hot?limit=${ITEMS_PER_PAGE}&offset=${page * ITEMS_PER_PAGE}`);
       if (!res.ok) throw new Error('Failed to fetch images');
-      const data = await res.json();
+      const data = (await res.json()) as { images: ImageWithRating[]; total: number };
       setImages(data.images);
       setTotal(data.total);
     } catch (err) {
@@ -78,7 +78,7 @@ export const HotOrNot: React.FC<HotOrNotProps> = () => {
       
       if (!res.ok) throw new Error('Vote failed');
       
-      const data = await res.json();
+      const data = (await res.json()) as { action?: string };
       
       // Update local state
       setImages(prev => prev.map(img => {

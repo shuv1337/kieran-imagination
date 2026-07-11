@@ -1,6 +1,6 @@
 export interface GeneratedImage {
   id: string;
-  url: string; // Data URL
+  url: string;
   prompt: string;
   timestamp: number;
 }
@@ -10,15 +10,16 @@ export enum AppView {
   PREVIEW = 'PREVIEW',
   EDITOR = 'EDITOR',
   CARDS = 'CARDS',
+  WORLDS = 'WORLDS',
 }
 
-// Card Themes - MVP
+// Card Themes — legacy enum kept for any residual UI; new cards use shared/cards.ts
 export enum CardTheme {
   POKEMON = 'pokemon',
+  CREATURE = 'creature',
   CUSTOM = 'custom',
 }
 
-// Card Rarities with visual mappings
 export enum CardRarity {
   COMMON = 'common',
   UNCOMMON = 'uncommon',
@@ -27,7 +28,6 @@ export enum CardRarity {
   LEGENDARY = 'legendary',
 }
 
-// Theme visual configuration
 export interface CardThemeConfig {
   name: string;
   primaryColor: string;
@@ -38,7 +38,6 @@ export interface CardThemeConfig {
   promptPrefix: string;
 }
 
-// Rarity visual configuration
 export interface CardRarityConfig {
   name: string;
   borderColor: string;
@@ -46,27 +45,6 @@ export interface CardRarityConfig {
   hasShimmer: boolean;
   hasFoil: boolean;
   hasParticles: boolean;
-}
-
-// Card specification for generation
-export interface CardSpec {
-  prompt: string;
-  theme: CardTheme;
-  rarity: CardRarity;
-  cardName: string;
-  baseImage?: string;
-}
-
-// Extended response for card generation
-export interface TradingCardResponse {
-  url: string;
-  previewUrl: string;
-  key: string;
-  cardId: string;
-  theme: CardTheme;
-  rarity: CardRarity;
-  cardName: string;
-  promptUsed: string;
 }
 
 export type ToolType = 'brush' | 'eraser' | 'fill' | 'text' | 'texture' | 'ai-edit';
@@ -83,6 +61,6 @@ export interface EditorState {
   fillPattern: PatternType;
   activeTexture: TextureType;
   isDrawing: boolean;
-  history: string[]; // Array of data URLs for undo
+  history: string[];
   historyStep: number;
 }
