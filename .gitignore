@@ -30,3 +30,6 @@ public/generated/*
 # Cloudflare
 .dev.vars
 .wrangler
+
+# Local deploy artifacts (secrets, D1 dumps)
+.deploy-backup/

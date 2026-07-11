@@ -13,7 +13,8 @@
     "types": [
       "vitest/globals",
       "node",
-      "vite-plugin-pwa/client"
+      "vite-plugin-pwa/client",
+      "@cloudflare/workers-types"
     ],
     "moduleResolution": "bundler",
     "isolatedModules": true,
@@ -26,6 +27,17 @@
       ]
     },
     "allowImportingTsExtensions": true,
-    "noEmit": true
-  }
+    "noEmit": true,
+    "strict": false,
+    "resolveJsonModule": true
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "vite.config.ts"
+  ]
 }

@@ -1,27 +1,37 @@
 {
   "name": "kieran's-imagination",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "npx wrangler pages dev dist --ip 10.0.2.100 --port 3000",
+    "dev": "vite build && wrangler dev --ip 0.0.0.0 --port 3000",
+    "dev:ui": "vite",
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:worker": "vitest run tests/worker tests/e2e",
+    "typecheck": "tsc --noEmit",
+    "check": "tsc --noEmit && vitest run && vite build",
+    "deploy": "vite build && wrangler deploy",
+    "cf-typegen": "wrangler types",
+    "db:migrate:local": "wrangler d1 migrations apply kieran-db --local",
+    "db:migrate:remote": "wrangler d1 migrations apply kieran-db --remote"
   },
   "dependencies": {
-    "@google/genai": "^1.30.0",
+    "@google/genai": "^2.11.0",
     "clsx": "^2.1.1",
     "framer-motion": "^12.23.24",
     "html2canvas": "^1.4.1",
     "lucide-react": "^0.554.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "react-router-dom": "^7.18.1",
     "tailwind-merge": "^3.4.0"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20251121.0",
+    "@cloudflare/vitest-pool-workers": "^0.18.4",
+    "@cloudflare/workers-types": "^5.20260711.1",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.2.0",
     "@types/node": "^22.14.0",

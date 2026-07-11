@@ -1,6 +1,21 @@
 name = "kieran-app"
-compatibility_date = "2025-11-23"
-pages_build_output_dir = "dist"
+main = "worker/index.ts"
+compatibility_date = "2026-07-11"
+compatibility_flags = ["nodejs_compat"]
+
+# Production custom domain (Worker owns kieran.app; disable route to fall back to Pages).
+routes = [
+  { pattern = "kieran.app/*", zone_name = "kieran.app" }
+]
+
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+run_worker_first = ["/api/*", "/hot", "/hotornot", "/cards", "/worlds", "/worlds/*", "/login"]
+
+[images]
+binding = "IMAGES"
 
 [[r2_buckets]]
 binding = "IMAGES_BUCKET"
@@ -10,3 +25,30 @@ bucket_name = "kieran-images"
 binding = "DB"
 database_name = "kieran-db"
 database_id = "2b58cfa4-5f85-424b-8643-bc440a177f82"
+migrations_dir = "migrations"
+
+[[workflows]]
+name = "kieran-creation"
+binding = "CREATION_WORKFLOW"
+class_name = "CreationWorkflow"
+
+# Use a positive integer namespace_id unique to this app in Cloudflare dashboard.
+# For local dev, the binding may be absent — code falls back gracefully.
+[[ratelimits]]
+name = "APP_RATE_LIMITER"
+namespace_id = "1001"
+  [ratelimits.simple]
+  limit = 20
+  period = 60
+
+[triggers]
+crons = ["*/5 * * * *"]
+
+[vars]
+DAILY_CREDIT_LIMIT = "40"
+HOUSEHOLD_OWNER_ID = "household"
+
+# Secrets (set via `wrangler secret put`):
+# GEMINI_API_KEY
+# FAMILY_ACCESS_CODE
+# SESSION_SIGNING_KEY
