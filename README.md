@@ -1,158 +1,106 @@
 # Kieran's Imagination
 
-Kieran's Imagination is an AI-powered coloring page generator for kids and families. Describe an idea, optionally upload or paste a photo, and the app generates a printable black-and-white coloring page through Gemini-backed image generation.
+Kieran's Imagination is a creation-first coloring-page and trading-card app for kids and families. Describe an idea, optionally add a photo, and start creating immediately. Work is saved automatically in **My creations** without asking children to set up projects or organize folders first.
 
 Live site: [kieran.app](https://kieran.app)
 
 ![Kieran's Imagination home screen](assets/kieran-app-home.png)
 
-## What It Does
+## What it does
 
-- Turns text prompts into printable coloring pages
-- Converts uploaded or pasted photos into line-art pages
-- Improves short prompts before generation
-- Offers rotating prompt suggestions for kids who need a starting point
-- Saves generated images to Cloudflare R2
-- Shares generated pages through native mobile sharing where available
-- Supports AI edit actions such as enhancing detail or fixing accidental coloring
-- Includes a community "Hot or Not" gallery route at `/hot`
-- Includes a trading-card generator route at `/cards`
+- Generates printable coloring pages from prompts and photos
+- Improves ideas and supplies kid-friendly prompt suggestions
+- Saves creations and revision history automatically
+- Supports AI edits, canvas edits, downloads, and sharing
+- Builds structured trading cards whose text and frame stay editable
+- Runs creation as durable jobs that survive refreshes
+- Normalizes generated and uploaded media into R2 assets
+- Keeps the public Hot or Not gallery at `/hot`
 
 ## Architecture
 
-The app is a Vite/React frontend deployed on Cloudflare Pages with Pages Functions for the API layer.
-
 ```text
-React app
-  -> Cloudflare Pages Functions
-      -> Gemini image/text APIs
-      -> Cloudflare R2 for generated images
-      -> Cloudflare D1 for metadata, votes, and request logs
+React 19 + Vite
+  -> Cloudflare Worker + Static Assets
+      -> Creation Jobs on Cloudflare Workflows
+          -> one Creation Engine
+              -> Google Gemini adapter
+      -> Cloudflare Images normalization
+      -> R2 media assets
+      -> D1 jobs, budgets, creations, revisions, and card documents
 ```
+
+All production image generation and editing use `gemini-3.1-flash-lite-image` at 1K through `server/creation/google.ts`; structured text uses `gemini-3.1-flash-lite`. Larger models are intentionally absent from the production catalog. A future experiment with another model must be an explicit dev/admin-only path and must not appear as a normal user quality choice.
+
+The database retains an internal `imagination_worlds` collection boundary, but the product does not expose Worlds. The frontend silently reuses or creates a default collection and presents the result as **My creations**.
 
 Key paths:
 
-- `App.tsx` - top-level routing and view state
-- `components/Generator.tsx` - prompt input, photo upload, suggestions, and generation flow
-- `components/Preview.tsx` - generated image display, share, edit, and download actions
-- `components/Editor.tsx` - coloring editor
-- `components/HotOrNot.tsx` - community voting surface
-- `components/cards/` - trading card generator UI
-- `functions/api/generate.ts` - coloring page generation endpoint
-- `functions/api/edit.ts` - AI edit endpoint
-- `functions/api/images.ts` and `functions/api/images/view.ts` - R2 image persistence
-- `functions/api/hot.ts` - voting endpoints
-- `functions/api/cards/` - trading card generation and editing endpoints
-- `migrations/` - Cloudflare D1 schema migrations
+- `App.tsx` — React Router shell and compatibility redirects
+- `components/CreatorHome.tsx` — prompt-first home and creation flow
+- `components/CreationsLibrary.tsx` — saved coloring pages and cards
+- `components/worlds/ArtworkView.tsx` — durable artwork and revision view
+- `components/cards/` — card document editor and renderer
+- `server/creation/` — engine, profiles, prompts, and single Gemini adapter
+- `worker/` — Worker router, auth, jobs, uploads, and Workflow
+- `server/media/` — normalization and media persistence
+- `migrations/` — D1 schema migrations
 
-## Tech Stack
-
-| Layer | Technology |
-|---|---|
-| Frontend | React 19, Vite, TypeScript |
-| Styling | Tailwind CSS, Framer Motion |
-| Icons | lucide-react |
-| Runtime | Cloudflare Pages |
-| API | Cloudflare Pages Functions |
-| AI | Google Gemini via `@google/genai` |
-| Storage | Cloudflare R2 |
-| Database | Cloudflare D1 |
-| Package manager | Bun 1.3.3 |
-| Tests | Vitest, Testing Library |
-
-## Local Development
-
-Install dependencies:
+## Local development
 
 ```bash
 bun install
-```
-
-Create `.dev.vars` for Cloudflare Pages Functions:
-
-```bash
-GEMINI_API_KEY=your_api_key_here
-GEMINI_IMAGE_MODEL=gemini-3-pro-image-preview
-```
-
-Build the frontend before starting the Pages dev server:
-
-```bash
-bun run build
+bun run db:migrate:local
 bun run dev
 ```
 
-Run the test suite:
+Create `.dev.vars` with Worker-only secrets:
 
-```bash
-bun run test
+```text
+GEMINI_API_KEY=your_api_key_here
+FAMILY_ACCESS_CODE=your_family_code
+SESSION_SIGNING_KEY=your_random_signing_key
 ```
 
-## Cloudflare Resources
+The Gemini key is never exposed to the Vite client.
 
-Configured in [`wrangler.toml`](wrangler.toml):
-
-| Binding | Type | Resource | Purpose |
-|---|---|---|---|
-| `IMAGES_BUCKET` | R2 | `kieran-images` | Store generated images |
-| `DB` | D1 | `kieran-db` | Store image metadata, votes, and request logs |
-
-Apply D1 migrations locally:
+Validation:
 
 ```bash
-npx wrangler d1 migrations apply kieran-db --local
+bun run check
 ```
 
-Apply D1 migrations to production:
+## Cloudflare resources
 
-```bash
-npx wrangler d1 migrations apply kieran-db --remote
-```
+| Binding | Type | Purpose |
+|---|---|---|
+| `ASSETS` | Static Assets | Serve the built SPA |
+| `IMAGES_BUCKET` | R2 | Store immutable media bytes |
+| `DB` | D1 | Store jobs, budgets, creations, revisions, cards, and legacy votes |
+| `IMAGES` | Images | Normalize and transform media |
+| `CREATION_WORKFLOW` | Workflow | Execute durable creation jobs |
+| `APP_RATE_LIMITER` | Rate limit | Protect login and job submission |
 
-## Deployment
-
-The production app is deployed to Cloudflare Pages as `kieran-app`.
-
-Check recent deployments:
-
-```bash
-npx wrangler pages deployment list --project-name kieran-app
-```
-
-Manual deploy:
-
-```bash
-bun run build
-npx wrangler pages deploy dist --project-name kieran-app
-```
-
-Tail production logs:
-
-```bash
-npx wrangler pages deployment tail --project-name kieran-app
-```
-
-## API Surface
+## API surface
 
 | Endpoint | Method | Description |
 |---|---|---|
-| `/api/generate` | POST | Generate a coloring page from a prompt or uploaded image |
-| `/api/edit` | POST | Edit an existing generated image |
-| `/api/upscale` | POST | Upscale image resolution |
-| `/api/images` | POST | Save image data to R2 |
-| `/api/images/view` | GET | Serve an image from R2 |
-| `/api/suggestions` | GET | Return prompt suggestions |
-| `/api/improve-prompt` | POST | Expand a short prompt into a stronger generation prompt |
-| `/api/hot` | GET/POST | Community voting data |
-| `/api/cards/generate` | POST | Generate trading card art |
-| `/api/cards/edit` | POST | Edit trading card art |
+| `/api/uploads` | POST | Normalize an uploaded image and return an asset ID |
+| `/api/jobs` | POST | Submit an idempotent creation request |
+| `/api/jobs/:id` | GET | Read durable job status and result |
+| `/api/assets/:id` | GET | Stream an authorized media asset |
+| `/api/worlds` | GET/POST | Internal saved-creation collection API |
+| `/api/artworks/:id` | GET | Read artwork and revision history |
+| `/api/cards/:id` | GET/PATCH | Read or update a structured card document |
+| `/api/hot` | GET/POST | Public Hot or Not voting |
+| `/api/suggestions` | GET | Get prompt suggestions |
 
-## Validation Evidence
+## Deployment
 
-The live site was pre-flighted on May 16, 2026:
-
-```text
-https://kieran.app -> HTTP 200 text/html; charset=utf-8
+```bash
+bun run build
+npx wrangler d1 migrations apply kieran-db --remote
+npx wrangler deploy
 ```
 
-The screenshot in this README was captured from the live site with the connected browser bridge.
+Do not recreate or maintain Pages Functions creation APIs alongside the Worker.

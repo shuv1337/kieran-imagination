@@ -1,6 +1,6 @@
 # Kieran's Imagination: One-Shot Creation Platform Refresh
 
-Status: implementation-ready plan
+Status: implemented on the feature branch; awaiting deployment
 
 Created: 2026-07-11
 
@@ -12,9 +12,9 @@ Replace the current app in one coordinated release:
 
 - Five duplicated image-generation handlers become one Creation Engine.
 - Synchronous requests become durable Creation Jobs with simple daily credits and normalized media.
-- Temporary generate/preview/editor state becomes persistent Imagination Worlds with artwork history.
+- Temporary generate/preview/editor state becomes automatically saved creations with artwork history.
 - Trading Cards become structured documents rendered deterministically around generated art.
-- Retired and preview Gemini models are replaced by a small stable model runway.
+- Retired and preview Gemini image models are replaced by one cheap stable Flash Lite route.
 
 This is intentionally optimized for a tiny, parent-operated audience. It does not build a general account platform, parallel runtime, compatibility layer, canary system, or long migration program.
 
@@ -64,7 +64,7 @@ bun run build      -> pass
 ~~~text
 React routes
   |
-  +-- /worlds and /cards
+  +-- /, /creations, /artworks/:id, and /cards
   |
   +-- POST /api/uploads -------------> R2 original
   |
@@ -79,7 +79,7 @@ React routes
                                            +-- persist media + revision
                                            +-- settle credits + job
 
-D1: jobs, daily credits, media metadata, worlds, artwork revisions, card documents
+D1: jobs, daily credits, media metadata, internal collections, artwork revisions, card documents
 R2: immutable original, normalized input, raw provider output, master, preview, print
 ~~~
 
@@ -128,10 +128,10 @@ services/
   worlds.ts
   cards.ts
 
-state/
-  WorldProvider.tsx
-
-components/worlds/
+components/
+  CreatorHome.tsx
+  CreationsLibrary.tsx
+  worlds/ArtworkView.tsx
 components/cards/
 migrations/0007_creation_platform.sql
 tests/worker/
@@ -218,18 +218,15 @@ Retry only a definite pre-response network failure, 429, or 5xx, with at most tw
 
 Keep the catalog in versioned TypeScript, not in D1.
 
-| Internal route | Initial stable model | Output | Use |
+| Internal route | Production model | Output | Use |
 |---|---|---:|---|
-| Draft | <code>gemini-3.1-flash-image</code> | 0.5K | fast preview |
-| Standard | <code>gemini-3.1-flash-image</code> | 1K | normal create/edit |
-| Print | <code>gemini-3-pro-image</code> | 4K | true letter-size printable final |
-| Premium | <code>gemini-3-pro-image</code> | 2K or 4K | difficult fidelity or final card art |
+| Draft | <code>gemini-3.1-flash-lite-image</code> | 1K | fast creation |
+| Standard | <code>gemini-3.1-flash-lite-image</code> | 1K | normal create/edit |
+| Print | <code>gemini-3.1-flash-lite-image</code> | 1K | compatibility alias; no larger-model upgrade |
+| Premium | <code>gemini-3.1-flash-lite-image</code> | 1K | compatibility alias; no larger-model upgrade |
 | Text fast | <code>gemini-3.1-flash-lite</code> | structured text | prompts and suggestions |
-| Text rich | <code>gemini-3.5-flash</code> | structured text | richer card/world copy |
 
-Do not put a preview or already-scheduled-for-retirement model in the fallback chain.
-
-Treat <code>gemini-3.1-flash-lite-image</code> as a later catalog switch, not a launch dependency. Add it only after one paid Interactions API probe proves the exact image response path works.
+There is no production image fallback chain and no larger image model in the catalog. Any future alternative-model experiment must be an explicit dev/admin-only opt-in outside the normal CreationRequest quality choices.
 
 Use the Interactions API for image work, request image-only output, default one-shot work to <code>store:false</code>, and persist all authoritative assets locally. A provider interaction ID is optional provenance, never the database key for a World.
 
@@ -322,9 +319,9 @@ Assign fixed integer credits per provider attempt in code:
 |---|---:|
 | Structured text | 1 |
 | Draft | 1 |
-| Standard | 2 |
-| Print | 8 |
-| Premium | 12 |
+| Standard | 1 |
+| Print | 1 |
+| Premium | 1 |
 
 Job acceptance first creates today's household row with <code>INSERT OR IGNORE</code> using the configured <code>DAILY_CREDIT_LIMIT</code>. The Job insert and maximum two-attempt reservation then happen in one D1 batch, with a migration trigger aborting the insert if the limit would be exceeded:
 
@@ -371,9 +368,9 @@ Create <code>migrations/0007_creation_platform.sql</code>. It contains:
 - <code>media_assets</code>: R2 metadata, role, visibility, provenance, timestamps.
 - Small triggers reserve and settle daily credits exactly once; there is no separate ledger.
 
-### Worlds
+### Internal saved-creation collections
 
-- <code>imagination_worlds</code>: title, description, timestamps, archived flag.
+- <code>imagination_worlds</code>: internal collection boundary, title, description, timestamps, archived flag. The name is not exposed in the product.
 - <code>artworks</code>: World, kind, title, current revision.
 - <code>artwork_revisions</code>: Artwork, parent revision, Media Asset, source Job, prompt/instruction, input revision IDs JSON, provenance JSON, timestamp.
 - <code>world_characters</code>: World, name, pinned Artwork Revision, notes.
@@ -406,31 +403,31 @@ Do not build user accounts or device pairing.
 
 This is a shared household door, not an identity system.
 
-## 7. Persistent Imagination Worlds
+## 7. Automatic persistence without Worlds friction
 
-Add React Router and use durable IDs in URLs:
+Use durable artwork and card IDs in URLs while keeping the first screen prompt-first:
 
 ~~~text
-/worlds
-/worlds/:worldId
-/worlds/:worldId/create
-/worlds/:worldId/artworks/:artworkId
-/worlds/:worldId/cards/new
-/worlds/:worldId/cards/:cardId
+/
+/creations
+/artworks/:artworkId
+/cards
+/cards/:cardId
 ~~~
 
-<code>App.tsx</code> becomes a shell/router. <code>WorldProvider</code> loads the selected World, active Jobs, Artwork history, and current Card.
+<code>App.tsx</code> is a shell/router. The home screen silently reuses or creates one internal collection named “My Creations”; users never create or select a World. Old <code>/worlds/*</code> links redirect to the simpler routes.
 
 Flow changes:
 
-- Generate creates an Artwork shell and a durable Job.
+- Generate silently ensures the internal collection, creates an Artwork shell, and starts a durable Job.
 - Preview loads an Artwork Revision by URL and survives refresh.
 - Enhance, Fix Coloring, Remix, and Print create child revisions.
 - Editor gets <code>onSave(blob, parentRevisionId)</code>; Save Art uploads and appends a revision.
 - Download remains local and does not change history.
 - Restore creates a new child from an older revision.
 - Character Reference pins a named revision and supplies it to future Jobs.
-- Opening the same URL on another logged-in family device restores the same World.
+- My creations aggregates saved artwork and cards without exposing their internal collection.
+- Opening the same artwork URL on another logged-in family device restores it directly.
 
 Required API:
 
@@ -476,7 +473,7 @@ interface CardDocumentV1 {
 
 Implementation:
 
-- Replace <code>TradingCardGenerator.tsx</code> with a World-aware Card Document controller.
+- Replace <code>TradingCardGenerator.tsx</code> with a Card Document controller that hides its internal collection.
 - Build <code>CardDocumentEditor.tsx</code> for real text/theme/rarity/crop fields.
 - Build one <code>CardRenderer.tsx</code> used by preview, PNG export, print, and share.
 - Render at fixed 500×700 design units; export at 3× to 1500×2100.
@@ -531,16 +528,16 @@ Exit: the Worker serves the current SPA and tests can run against D1, R2, Images
 
 Exit: generate, edit, enhance, card-art generate/edit, and text suggestions all use one durable path with no base64.
 
-### Checkpoint C: Worlds and Cards
+### Checkpoint C: automatic persistence and Cards
 
 - [ ] Add World, Artwork, Revision, Character, Card, and Card Revision repositories/APIs.
-- [ ] Add routed World screens and reload/reconnect behavior.
+- [ ] Add a creation-first home, My creations library, durable artwork routes, and reload/reconnect behavior.
 - [ ] Connect Generator, Preview, and Editor to Artwork revisions.
 - [ ] Implement the Card Document editor and single renderer.
 - [ ] Connect card art and card copy suggestions to the Creation Engine.
 - [ ] Make all new assets private and filter them from Hot or Not.
 
-Exit: a World survives refresh, artwork history branches safely, and a composed card can be edited, regenerated, exported, printed, and shared.
+Exit: creations survive refresh without an organizational setup step, artwork history branches safely, and a composed card can be edited, regenerated, exported, printed, and shared.
 
 ### Checkpoint D: rip the band-aid
 
@@ -566,7 +563,7 @@ Automated:
 - [ ] Concurrent Job acceptance cannot exceed the daily credit limit.
 - [ ] Workflow interruption resumes without duplicating an Artwork Revision.
 - [ ] PNG/JPEG/WebP, corrupt, transparent, oversized, and orientation fixtures normalize correctly.
-- [ ] Refreshing a World restores its active Job and revision history.
+- [ ] Refreshing an artwork restores its active Job and revision history.
 - [ ] Editor Save creates a revision; Download does not.
 - [ ] Private World assets never appear in Hot or Not.
 - [ ] Card fields survive art regeneration.
@@ -577,10 +574,10 @@ Automated:
 One production smoke after deployment:
 
 1. Log in with the household access code.
-2. Create a World.
-3. Generate one Draft coloring page.
-4. Refresh while a Standard edit is running and confirm it reconnects.
-5. Save one Editor revision.
+2. Generate one coloring page directly from the home screen with no setup step.
+3. Refresh while an edit is running and confirm it reconnects.
+4. Save one Editor revision.
+5. Confirm it appears in My creations.
 6. Create a card, edit its text/theme, regenerate only its art, and export it.
 7. Confirm the new assets are absent from Hot or Not.
 8. Confirm daily credits reserved and used reconcile to zero reserved.
@@ -604,7 +601,7 @@ routes = [
 directory = "./dist"
 binding = "ASSETS"
 not_found_handling = "single-page-application"
-run_worker_first = ["/api/*", "/hot", "/hotornot", "/cards", "/worlds/*"]
+run_worker_first = ["/api/*", "/hot", "/hotornot", "/cards", "/creations", "/artworks/*"]
 
 [images]
 binding = "IMAGES"
@@ -653,9 +650,9 @@ SESSION_SIGNING_KEY
 - [ ] Jobs survive refresh and Workflow step replay; client idempotency cannot create duplicate Jobs, and ambiguous provider outcomes never auto-retry.
 - [ ] Daily credits cap accidental spend with replay-safe D1 reservation and settlement triggers.
 - [ ] New image inputs and outputs are normalized R2 Media Assets; no new base64 path exists.
-- [ ] Worlds and Artwork revisions restore from URLs.
+- [ ] Artwork revisions restore from direct URLs and appear in My creations; no World setup is exposed.
 - [ ] Trading Cards are structured documents rendered consistently for preview/export/print/share.
-- [ ] Stable model routes replace every retired and preview model.
+- [ ] Every production image route resolves to Flash Lite 1K; no larger model is present in the production catalog.
 - [ ] The Worker route owns <code>kieran.app</code>; the old Pages project is removed after the production smoke passes.
 - [ ] Old provider routes, old Gemini service, and pixel card editing are gone.
 
@@ -665,9 +662,7 @@ Google:
 
 - [Image generation](https://ai.google.dev/gemini-api/docs/image-generation)
 - [Interactions API](https://ai.google.dev/gemini-api/docs/interactions-overview)
-- [Gemini 3.1 Flash Image](https://ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-image)
 - [Gemini 3.1 Flash Lite Image](https://ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-lite-image)
-- [Gemini 3 Pro Image](https://ai.google.dev/gemini-api/docs/models/gemini-3-pro-image)
 - [Deprecations](https://ai.google.dev/gemini-api/docs/deprecations)
 
 Cloudflare:
