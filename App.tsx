@@ -1,51 +1,23 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { BrowserRouter, Navigate, Route, Routes, useNavigate, useSearchParams } from 'react-router-dom';
 import { HotOrNot } from './components/HotOrNot';
 import { Login } from './components/Login';
-import { WorldsHome } from './components/worlds/WorldsHome';
-import { WorldDetail } from './components/worlds/WorldDetail';
-import { WorldCreate } from './components/worlds/WorldCreate';
+import { CreatorHome } from './components/CreatorHome';
+import { CreationsLibrary } from './components/CreationsLibrary';
 import { ArtworkView } from './components/worlds/ArtworkView';
 import { CardDocumentEditor } from './components/cards/CardDocumentEditor';
-import { NewCardRedirect } from './components/worlds/NewCardRedirect';
-import { getSession } from './services/api';
-
-/** Only used for Hot or Not — creation routes are open without login. */
-function RequireAuth({ children }: { children: React.ReactNode }) {
-  const [state, setState] = useState<'loading' | 'yes' | 'no'>('loading');
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    void getSession()
-      .then((s) => setState(s.authenticated ? 'yes' : 'no'))
-      .catch(() => setState('no'));
-  }, []);
-
-  if (state === 'loading') {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-950 text-slate-300">
-        Checking access…
-      </div>
-    );
-  }
-  if (state === 'no') {
-    const next = `${window.location.pathname}${window.location.search}`;
-    return <Navigate to={`/login?next=${encodeURIComponent(next)}`} replace />;
-  }
-  return <>{children}</>;
-}
+import { CardStart } from './components/CardStart';
 
 function LoginRoute() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const next = params.get('next') || '/worlds';
+  const next = params.get('next') || '/';
 
   return (
     <Login
       onSuccess={() => {
-        // Only allow same-origin relative paths
-        const dest = next.startsWith('/') && !next.startsWith('//') ? next : '/worlds';
-        navigate(dest, { replace: true });
+        const destination = next.startsWith('/') && !next.startsWith('//') ? next : '/';
+        navigate(destination, { replace: true });
       }}
     />
   );
@@ -54,47 +26,32 @@ function LoginRoute() {
 function AppRoutes() {
   return (
     <Routes>
-      <Route
-        path="/hot"
-        element={
-          <RequireAuth>
-            <HotOrNot />
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/hotornot"
-        element={
-          <RequireAuth>
-            <HotOrNot />
-          </RequireAuth>
-        }
-      />
+      <Route path="/" element={<CreatorHome />} />
+      <Route path="/creations" element={<CreationsLibrary />} />
+      <Route path="/artworks/:artworkId" element={<ArtworkView />} />
+      <Route path="/cards" element={<CardStart />} />
+      <Route path="/cards/:cardId" element={<CardDocumentEditor />} />
+      <Route path="/hot" element={<HotOrNot />} />
+      <Route path="/hotornot" element={<HotOrNot />} />
       <Route path="/login" element={<LoginRoute />} />
 
-      <Route path="/worlds" element={<WorldsHome />} />
-      <Route path="/worlds/:worldId" element={<WorldDetail />} />
-      <Route path="/worlds/:worldId/create" element={<WorldCreate />} />
+      {/* Old links remain valid, but users no longer navigate through Worlds. */}
+      <Route path="/worlds" element={<Navigate to="/creations" replace />} />
+      <Route path="/worlds/:worldId" element={<Navigate to="/creations" replace />} />
+      <Route path="/worlds/:worldId/create" element={<Navigate to="/" replace />} />
       <Route path="/worlds/:worldId/artworks/:artworkId" element={<ArtworkView />} />
-      <Route path="/worlds/:worldId/cards/new" element={<NewCardRedirect />} />
+      <Route path="/worlds/:worldId/cards/new" element={<CardStart />} />
       <Route path="/worlds/:worldId/cards/:cardId" element={<CardDocumentEditor />} />
 
-      {/* Legacy /cards → worlds */}
-      <Route path="/cards" element={<Navigate to="/worlds" replace />} />
-
-      {/* Home */}
-      <Route path="/" element={<Navigate to="/worlds" replace />} />
-      <Route path="*" element={<Navigate to="/worlds" replace />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
 
-const App: React.FC = () => {
-  return (
-    <BrowserRouter>
-      <AppRoutes />
-    </BrowserRouter>
-  );
-};
+const App: React.FC = () => (
+  <BrowserRouter>
+    <AppRoutes />
+  </BrowserRouter>
+);
 
 export default App;

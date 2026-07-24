@@ -55,7 +55,7 @@ const ROUTE_META: Record<string, { title: string; description: string; image: st
     image: 'https://kieran.app/cards-share-banner.png',
   },
   '/worlds': {
-    title: "Imagination Worlds | Kieran's Imagination",
+    title: "My Creations | Kieran's Imagination",
     description: 'Persistent worlds of coloring pages and trading cards for the family.',
     image: 'https://kieran.app/og-share-banner.png',
   },

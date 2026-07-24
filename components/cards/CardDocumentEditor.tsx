@@ -15,7 +15,7 @@ import Background from '../Background';
 import { ErrorModal } from '../ErrorModal';
 
 export const CardDocumentEditor: React.FC = () => {
-  const { worldId, cardId } = useParams<{ worldId: string; cardId: string }>();
+  const { cardId } = useParams<{ cardId: string }>();
   const renderRef = useRef<HTMLDivElement>(null);
   const exportRef = useRef<HTMLDivElement>(null);
 
@@ -190,21 +190,28 @@ export const CardDocumentEditor: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col relative text-slate-100">
+    <div className="min-h-screen flex flex-col relative text-slate-100 pb-16 md:pb-0">
       <Background />
-      <header className="relative z-10 p-4 flex items-center gap-3">
-        <Link to={`/worlds/${worldId}`} className="text-slate-400 hover:text-white">
-          <ChevronLeft size={28} />
+      <header className="relative z-10 flex items-center justify-between p-4 md:p-6">
+        <Link
+          to="/cards"
+          className="flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-slate-300 backdrop-blur-sm hover:bg-white/20 hover:text-white"
+        >
+          <ChevronLeft size={20} />
+          <span className="hidden sm:inline">Create Another</span>
         </Link>
-        <h1 className="text-xl font-comic flex-1">{card?.title || 'Card'}</h1>
+        <h1 className="bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text font-comic text-2xl text-transparent">
+          Your Card
+        </h1>
         {busy && (
-          <span className="text-sm text-amber-300 flex items-center gap-1">
+          <span className="flex items-center gap-1 text-sm text-amber-300">
             <Loader2 className="animate-spin" size={14} /> {busy}
           </span>
         )}
+        {!busy && <div className="w-10 sm:w-28" />}
       </header>
 
-      <main className="relative z-10 flex-1 grid lg:grid-cols-2 gap-8 px-4 pb-12 max-w-6xl mx-auto w-full">
+      <main className="relative z-10 mx-auto grid w-full max-w-6xl flex-1 gap-8 px-4 pb-12 lg:grid-cols-2">
         <div className="flex justify-center relative">
           <CardRenderer ref={renderRef} document={doc} artUrl={artUrl} scale={0.85} />
           {/* Off-screen unscaled node for crisp 1500×2100 export */}
@@ -221,7 +228,7 @@ export const CardDocumentEditor: React.FC = () => {
           </div>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-4 rounded-3xl border border-white/10 bg-slate-800/50 p-5 shadow-2xl backdrop-blur-xl md:p-6">
           <label className="block text-sm text-slate-400">Name</label>
           <input
             className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-600"

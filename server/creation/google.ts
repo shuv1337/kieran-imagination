@@ -3,7 +3,7 @@
  *
  * Image path uses generateContent with responseModalities: ['IMAGE'] (image-only)
  * and local R2 persistence (store:false semantics). Interactions API is not used:
- * for the catalog models (gemini-3.1-flash-image / gemini-3-pro-image), generateContent
+ * for the production catalog model (gemini-3.1-flash-lite-image), generateContent
  * is the supported SDK path for one-shot image generation in @google/genai 2.x.
  * Provider interaction IDs are optional provenance only.
  */

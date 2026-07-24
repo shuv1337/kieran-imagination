@@ -2,7 +2,7 @@
  * Production smoke checklist (manual after deploy) + light invariants.
  *
  * 1. Log in with FAMILY_ACCESS_CODE
- * 2. Create a World
+ * 2. Create directly from the home screen with no setup step
  * 3. Generate one Draft coloring page
  * 4. Refresh while a Standard edit is running and confirm it reconnects
  * 5. Save one Editor revision
@@ -32,9 +32,9 @@ describe('e2e smoke invariants', () => {
   it('credit table matches plan', () => {
     expect(CREDITS_PER_ATTEMPT).toEqual({
       draft: 1,
-      standard: 2,
-      print: 8,
-      premium: 12,
+      standard: 1,
+      print: 1,
+      premium: 1,
       text: 1,
     });
     expect(MAX_PROVIDER_ATTEMPTS).toBe(2);

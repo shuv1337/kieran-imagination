@@ -61,7 +61,7 @@ export async function handleCard(
     const body = await request.json().catch(() => ({}));
     const prompt =
       typeof (body as any).prompt === 'string' ? (body as any).prompt : card.title;
-    const quality = (body as any).quality === 'standard' ? 'standard' : 'premium';
+    const quality = (body as any).quality === 'premium' ? 'premium' : 'standard';
     const revision = await cards.getCurrentRevision(cardId);
     const art = await worlds.createArtwork(card.worldId, {
       kind: 'card-art',

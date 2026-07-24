@@ -16,7 +16,6 @@ export interface CreationProfile {
   operation: CreationOperation;
   aspectRatio: string | null;
   imageOnly: boolean;
-  textRich: boolean;
   requiresPrompt: boolean;
   requiresInstruction: boolean;
   requiresBaseInput: boolean;
@@ -29,7 +28,6 @@ export const PROFILES: Record<ProfileId, CreationProfile> = {
     operation: 'coloring.generate',
     aspectRatio: '3:4',
     imageOnly: true,
-    textRich: false,
     requiresPrompt: true,
     requiresInstruction: false,
     requiresBaseInput: false,
@@ -40,7 +38,6 @@ export const PROFILES: Record<ProfileId, CreationProfile> = {
     operation: 'coloring.edit',
     aspectRatio: '3:4',
     imageOnly: true,
-    textRich: false,
     requiresPrompt: false,
     requiresInstruction: true,
     requiresBaseInput: true,
@@ -51,7 +48,6 @@ export const PROFILES: Record<ProfileId, CreationProfile> = {
     operation: 'coloring.enhance',
     aspectRatio: '3:4',
     imageOnly: true,
-    textRich: false,
     requiresPrompt: false,
     requiresInstruction: false,
     requiresBaseInput: true,
@@ -62,7 +58,6 @@ export const PROFILES: Record<ProfileId, CreationProfile> = {
     operation: 'card-art.generate',
     aspectRatio: '2:3',
     imageOnly: true,
-    textRich: false,
     requiresPrompt: true,
     requiresInstruction: false,
     requiresBaseInput: false,
@@ -73,7 +68,6 @@ export const PROFILES: Record<ProfileId, CreationProfile> = {
     operation: 'card-art.edit',
     aspectRatio: '2:3',
     imageOnly: true,
-    textRich: false,
     requiresPrompt: false,
     requiresInstruction: true,
     requiresBaseInput: true,
@@ -84,7 +78,6 @@ export const PROFILES: Record<ProfileId, CreationProfile> = {
     operation: 'card-copy.suggest',
     aspectRatio: null,
     imageOnly: false,
-    textRich: true,
     requiresPrompt: true,
     requiresInstruction: false,
     requiresBaseInput: false,
@@ -95,7 +88,6 @@ export const PROFILES: Record<ProfileId, CreationProfile> = {
     operation: 'prompt.improve',
     aspectRatio: null,
     imageOnly: false,
-    textRich: false,
     requiresPrompt: true,
     requiresInstruction: false,
     requiresBaseInput: false,
@@ -106,7 +98,6 @@ export const PROFILES: Record<ProfileId, CreationProfile> = {
     operation: 'suggestions.generate',
     aspectRatio: null,
     imageOnly: false,
-    textRich: false,
     requiresPrompt: false,
     requiresInstruction: false,
     requiresBaseInput: false,
@@ -131,7 +122,7 @@ export function profileForOperation(operation: CreationOperation): CreationProfi
 
 export function resolveModel(profile: CreationProfile, quality: CreationQuality): ModelDefinition {
   if (profile.kind === 'text') {
-    return getTextModel(profile.textRich);
+    return getTextModel();
   }
   return getModelForQuality(quality);
 }

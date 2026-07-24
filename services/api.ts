@@ -9,6 +9,19 @@ export class ApiError extends Error {
   }
 }
 
+const GUEST_ID_KEY = 'kieran_guest_id';
+
+/** Stable browser identity so anonymous creations are not shared globally. */
+export function getGuestId(): string | null {
+  if (typeof window === 'undefined') return null;
+  let id = window.localStorage.getItem(GUEST_ID_KEY);
+  if (!id) {
+    id = crypto.randomUUID();
+    window.localStorage.setItem(GUEST_ID_KEY, id);
+  }
+  return id;
+}
+
 export async function apiFetch<T = unknown>(
   path: string,
   init: RequestInit = {}
@@ -16,6 +29,10 @@ export async function apiFetch<T = unknown>(
   const headers = new Headers(init.headers);
   if (init.body && !(init.body instanceof FormData) && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json');
+  }
+  const guestId = getGuestId();
+  if (guestId && !headers.has('X-Kieran-Guest-Id')) {
+    headers.set('X-Kieran-Guest-Id', guestId);
   }
 
   const response = await fetch(path, {

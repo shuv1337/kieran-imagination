@@ -45,10 +45,18 @@ describe('household session auth', () => {
     expect(await verifySession(other, token)).toBeNull();
   });
 
-  it('resolveOwnerId returns guest without cookie and household when logged in', async () => {
+  it('resolveOwnerId isolates browser guests and returns household when logged in', async () => {
     const env = mockEnv();
     const anon = await resolveOwnerId(new Request('https://kieran.app/api/worlds'), env);
     expect(anon).toBe(GUEST_OWNER_ID);
+
+    const browserGuest = await resolveOwnerId(
+      new Request('https://kieran.app/api/worlds', {
+        headers: { 'X-Kieran-Guest-Id': '550e8400-e29b-41d4-a716-446655440000' },
+      }),
+      env
+    );
+    expect(browserGuest).toBe('guest:550e8400-e29b-41d4-a716-446655440000');
 
     const token = await signSession(env, 'household');
     const loggedIn = await resolveOwnerId(

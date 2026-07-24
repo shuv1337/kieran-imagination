@@ -83,9 +83,9 @@ export const CREATION_QUALITIES: CreationQuality[] = [
 /** Fixed integer credits per provider attempt (by quality route / text). */
 export const CREDITS_PER_ATTEMPT: Record<CreationQuality | 'text', number> = {
   draft: 1,
-  standard: 2,
-  print: 8,
-  premium: 12,
+  standard: 1,
+  print: 1,
+  premium: 1,
   text: 1,
 };
 

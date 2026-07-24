@@ -124,6 +124,8 @@ export function timingSafeEqual(a: string, b: string): boolean {
 
 /** Fixed owner id for anonymous (no household login) creation storage. */
 export const GUEST_OWNER_ID = 'guest';
+const GUEST_ID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export async function requireSession(
   request: Request,
@@ -146,10 +148,16 @@ export async function requireSession(
  */
 export async function resolveOwnerId(request: Request, env: Env): Promise<string> {
   const token = readCookie(request, SESSION_COOKIE);
-  if (!token) return GUEST_OWNER_ID;
-  const session = await verifySession(env, token);
-  if (!session) return GUEST_OWNER_ID;
-  return session.ownerId;
+  if (token) {
+    const session = await verifySession(env, token);
+    if (session) return session.ownerId;
+  }
+
+  const guestId = request.headers.get('x-kieran-guest-id')?.trim() ?? '';
+  if (GUEST_ID_PATTERN.test(guestId)) {
+    return 'guest:' + guestId.toLowerCase();
+  }
+  return GUEST_OWNER_ID;
 }
 
 function jsonAuthError(status: number, error: string): Response {

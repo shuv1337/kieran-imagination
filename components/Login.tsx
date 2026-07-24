@@ -46,11 +46,11 @@ export const Login: React.FC<LoginProps> = ({ onSuccess }) => {
             />
           </div>
           <h1 className="text-3xl font-comic text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500">
-            Family Door
+            Family sync
           </h1>
           <p className="text-slate-400 text-center text-sm">
-            Enter the household access code to unlock Hot or Not and shared family Worlds.
-            Creating coloring pages works without logging in.
+            Enter the household access code to see the same saved creations on family devices.
+            You can always create without signing in.
           </p>
         </div>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -77,10 +77,9 @@ export const Login: React.FC<LoginProps> = ({ onSuccess }) => {
           </button>
         </form>
         <p className="mt-6 text-center text-slate-500 text-xs">
-          <a href="/worlds" className="text-cyan-400 hover:underline">
-            Continue without login
+          <a href="/" className="text-cyan-400 hover:underline">
+            Continue creating
           </a>
-          {' · '}Hot or Not requires this code.
         </p>
       </motion.div>
     </div>

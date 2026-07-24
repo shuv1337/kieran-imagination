@@ -4,7 +4,7 @@ import { FakeModelAdapter } from '../../server/creation/fake';
 import { CreationError, filtered, rateLimited, providerUnavailable, timeout, noOutput } from '../../server/creation/errors';
 import { mapGoogleError } from '../../server/creation/google';
 import { CREATION_OPERATIONS, creditsForRequest, maxReservedCredits, stableRequestHash } from '../../shared/creation';
-import { allStableModelIds } from '../../server/creation/models';
+import { allStableModelIds, getModelForQuality } from '../../server/creation/models';
 import { profileForOperation } from '../../server/creation/profiles';
 
 describe('CreationEngine contracts', () => {
@@ -58,9 +58,9 @@ describe('CreationEngine contracts', () => {
 describe('credits and idempotency hash', () => {
   it('computes fixed credits', () => {
     expect(creditsForRequest({ operation: 'prompt.improve', quality: 'draft' })).toBe(1);
-    expect(creditsForRequest({ operation: 'coloring.generate', quality: 'standard' })).toBe(2);
-    expect(creditsForRequest({ operation: 'coloring.generate', quality: 'print' })).toBe(8);
-    expect(maxReservedCredits({ operation: 'coloring.generate', quality: 'standard' })).toBe(4);
+    expect(creditsForRequest({ operation: 'coloring.generate', quality: 'standard' })).toBe(1);
+    expect(creditsForRequest({ operation: 'coloring.generate', quality: 'print' })).toBe(1);
+    expect(maxReservedCredits({ operation: 'coloring.generate', quality: 'standard' })).toBe(2);
   });
 
   it('stable hash ignores input order', () => {
@@ -93,10 +93,17 @@ describe('model catalog', () => {
       expect(id).not.toMatch(/preview/i);
       expect(id).not.toMatch(/gemini-2\.0/);
     }
-    expect(ids).toContain('gemini-3.1-flash-image');
-    expect(ids).toContain('gemini-3-pro-image');
+    expect(ids).toContain('gemini-3.1-flash-lite-image');
     expect(ids).toContain('gemini-3.1-flash-lite');
-    expect(ids).toContain('gemini-3.5-flash');
+  });
+
+  it('routes every production image quality to Flash Lite 1K', () => {
+    for (const quality of ['draft', 'standard', 'print', 'premium'] as const) {
+      expect(getModelForQuality(quality)).toMatchObject({
+        modelId: 'gemini-3.1-flash-lite-image',
+        imageSize: '1K',
+      });
+    }
   });
 });
 

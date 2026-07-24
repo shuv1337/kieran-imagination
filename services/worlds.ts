@@ -12,6 +12,19 @@ export async function createWorld(title: string, description?: string): Promise<
   });
 }
 
+/** Internal persistence container. The creation UI never asks users to create or name it. */
+export async function getOrCreateCreationWorld(): Promise<ImaginationWorld> {
+  const { worlds } = await listWorlds();
+  const existing =
+    worlds.find((world) => world.title === 'My Creations' && !world.archived) ||
+    [...worlds]
+      .filter((world) => !world.archived)
+      .sort((a, b) => b.updatedAt - a.updatedAt)[0];
+  if (existing) return existing;
+  const { world } = await createWorld('My Creations');
+  return world;
+}
+
 export async function getWorld(worldId: string): Promise<{
   world: ImaginationWorld;
   artworks: Artwork[];

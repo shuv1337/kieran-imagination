@@ -31,14 +31,14 @@ describe('GoogleModelAdapter response mapping', () => {
     });
     const adapter = new GoogleModelAdapter('key');
     const result = await adapter.generateImage({
-      modelId: 'gemini-3.1-flash-image',
+      modelId: 'gemini-3.1-flash-lite-image',
       prompt: 'cat',
       images: [],
       imageOnly: true,
     });
     expect(result.bytes.length).toBeGreaterThan(0);
     expect(result.mimeType).toBe('image/png');
-    expect(result.modelId).toBe('gemini-3.1-flash-image');
+    expect(result.modelId).toBe('gemini-3.1-flash-lite-image');
   });
 
   it('maps no image parts to no_output', async () => {
