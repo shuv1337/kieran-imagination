@@ -4,6 +4,7 @@ import {
   handleSession,
   requireSession,
   resolveOwnerId,
+  withGuestCookie,
 } from './auth';
 import {
   handleCancelJob,
@@ -356,6 +357,15 @@ async function injectMeta(env: Env, path: string, origin: string): Promise<Respo
 }
 
 export async function handleRequest(
+  request: Request,
+  env: Env,
+  ctx: ExecutionContext
+): Promise<Response> {
+  const response = await routeRequest(request, env, ctx);
+  return withGuestCookie(request, response);
+}
+
+async function routeRequest(
   request: Request,
   env: Env,
   ctx: ExecutionContext

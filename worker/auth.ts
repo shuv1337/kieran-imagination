@@ -67,7 +67,13 @@ export function readCookie(request: Request, name: string): string | null {
   const header = request.headers.get('Cookie') || '';
   for (const part of header.split(';')) {
     const [k, ...rest] = part.trim().split('=');
-    if (k === name) return decodeURIComponent(rest.join('='));
+    if (k === name) {
+      try {
+        return decodeURIComponent(rest.join('='));
+      } catch {
+        return null;
+      }
+    }
   }
   return null;
 }
@@ -124,8 +130,25 @@ export function timingSafeEqual(a: string, b: string): boolean {
 
 /** Fixed owner id for anonymous (no household login) creation storage. */
 export const GUEST_OWNER_ID = 'guest';
+export const GUEST_COOKIE = 'kieran_guest_id';
 const GUEST_ID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+/** Carry the existing browser identity on image/download requests, which cannot set headers. */
+export function withGuestCookie(request: Request, response: Response): Response {
+  const guestId = request.headers.get('x-kieran-guest-id')?.trim() ?? '';
+  if (!GUEST_ID_PATTERN.test(guestId)) return response;
+  const id = guestId.toLowerCase();
+  if (readCookie(request, GUEST_COOKIE) === id) return response;
+
+  const headers = new Headers(response.headers);
+  headers.append(
+    'Set-Cookie',
+    `${GUEST_COOKIE}=${id}; Path=/; HttpOnly; SameSite=Lax; Max-Age=31536000${isHttpsRequest(request) ? '; Secure' : ''}`
+  );
+  headers.set('Cache-Control', 'private, no-store');
+  return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
+}
 
 export async function requireSession(
   request: Request,
@@ -153,7 +176,9 @@ export async function resolveOwnerId(request: Request, env: Env): Promise<string
     if (session) return session.ownerId;
   }
 
-  const guestId = request.headers.get('x-kieran-guest-id')?.trim() ?? '';
+  const guestId = request.headers.get('x-kieran-guest-id')?.trim()
+    || readCookie(request, GUEST_COOKIE)
+    || '';
   if (GUEST_ID_PATTERN.test(guestId)) {
     return 'guest:' + guestId.toLowerCase();
   }
