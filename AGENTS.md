@@ -71,27 +71,30 @@ SESSION_SIGNING_KEY
 
 ## Key Features
 
-1. **Household login** - shared family access code cookie
-2. **Automatic persistence** - invisible internal collections, with artworks and revisions shown as My creations
-3. **Creation Engine** - one path for coloring generate/edit/enhance, card art, text ops
-4. **Creation Jobs** - idempotent, credit-reserved, Workflow-backed
-5. **Media Assets** - normalized R2 masters/previews (no base64 API)
-6. **Trading Card Documents** - structured fields + single CardRenderer
-7. **Hot or Not** - public legacy `generated_images` only (private world assets excluded)
+1. **Household login** - shared family access code cookie; optional for creation
+2. **Guest identity** - anonymous browsers get a per-browser guest owner (`X-Kieran-Guest-Id` header from the client, mirrored into the HttpOnly `kieran_guest_id` cookie so `<img>`/download requests can read private assets)
+3. **Automatic persistence** - invisible internal collections, with artworks and revisions shown as My creations
+4. **Creation Engine** - one path for coloring generate/edit/enhance, card art, text ops
+5. **Creation Jobs** - idempotent, credit-reserved, Workflow-backed
+6. **Media Assets** - normalized R2 masters/previews (no base64 API)
+7. **Trading Card Documents** - structured fields + single CardRenderer
+8. **Hot or Not** - public legacy `generated_images` only (private world assets excluded)
 
 ## API (new)
+
+"optional" = household session if present, otherwise the guest owner.
 
 | Endpoint | Method | Auth | Description |
 |----------|--------|------|-------------|
 | `/api/login` | POST | no | Exchange access code for session cookie |
 | `/api/session` | GET | no | Session probe |
-| `/api/uploads` | POST | yes | Multipart image → normalized assetId |
-| `/api/jobs` | POST | yes | Accept CreationRequest (+ Idempotency-Key) |
-| `/api/jobs/:id` | GET | yes | Job status |
-| `/api/assets/:id` | GET | private assets need cookie | Stream media |
-| `/api/worlds` | GET/POST | yes | Internal saved-creation collections; never a required UX step |
-| `/api/artworks/:id` | GET | yes | Artwork + revisions |
-| `/api/cards/:id` | GET/PATCH | yes | Card document |
+| `/api/uploads` | POST | optional | Multipart image → normalized assetId |
+| `/api/jobs` | POST | optional | Accept CreationRequest (+ Idempotency-Key) |
+| `/api/jobs/:id` | GET | optional | Job status |
+| `/api/assets/:id` | GET | owner (session or guest cookie) | Stream media |
+| `/api/worlds` | GET/POST | optional | Internal saved-creation collections; never a required UX step |
+| `/api/artworks/:id` | GET | optional | Artwork + revisions |
+| `/api/cards/:id` | GET/PATCH | optional | Card document |
 | `/api/hot` | GET/POST | no | Public voting |
 | `/api/suggestions` | GET | no | Prompt suggestions |
 

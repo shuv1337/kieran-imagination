@@ -1,5 +1,7 @@
 # Upload Tracking Plan
 
+> Archived. This describes the retired Pages Functions endpoints (`/api/generate`, `/api/edit`, `/api/upscale`, `/api/images`). The Worker creation platform replaced them: uploads now go through `POST /api/uploads` into normalized media assets. Kept for the `kieran-app-admin` notes only.
+
 ## Current State
 
 ### How Images Are Currently Saved

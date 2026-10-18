@@ -1,6 +1,6 @@
 # Kieran's Imagination: One-Shot Creation Platform Refresh
 
-Status: implemented on the feature branch; awaiting deployment
+Status: implemented and deployed to kieran.app (Worker cutover 2026-07-23; latest deploy 2026-09-26). The checklists below are the original plan and were not ticked off as work landed; treat them as historical.
 
 Created: 2026-07-11
 
