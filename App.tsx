@@ -1,6 +1,5 @@
 import React from 'react';
 import { BrowserRouter, Navigate, Route, Routes, useNavigate, useSearchParams } from 'react-router-dom';
-import { HotOrNot } from './components/HotOrNot';
 import { Login } from './components/Login';
 import { CreatorHome } from './components/CreatorHome';
 import { CreationsLibrary } from './components/CreationsLibrary';
@@ -31,11 +30,11 @@ function AppRoutes() {
       <Route path="/artworks/:artworkId" element={<ArtworkView />} />
       <Route path="/cards" element={<CardStart />} />
       <Route path="/cards/:cardId" element={<CardDocumentEditor />} />
-      <Route path="/hot" element={<HotOrNot />} />
-      <Route path="/hotornot" element={<HotOrNot />} />
       <Route path="/login" element={<LoginRoute />} />
 
-      {/* Old links remain valid, but users no longer navigate through Worlds. */}
+      {/* Old links remain valid: Hot or Not is retired, and users no longer navigate through Worlds. */}
+      <Route path="/hot" element={<Navigate to="/" replace />} />
+      <Route path="/hotornot" element={<Navigate to="/" replace />} />
       <Route path="/worlds" element={<Navigate to="/creations" replace />} />
       <Route path="/worlds/:worldId" element={<Navigate to="/creations" replace />} />
       <Route path="/worlds/:worldId/create" element={<Navigate to="/" replace />} />

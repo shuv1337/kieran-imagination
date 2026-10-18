@@ -7,7 +7,7 @@
  * 4. Refresh while a Standard edit is running and confirm it reconnects
  * 5. Save one Editor revision
  * 6. Create a card, edit text/theme, regenerate only art, export PNG (1500×2100)
- * 7. Confirm new assets are absent from Hot or Not
+ * 7. Confirm /hot redirects home and /api/hot returns 404
  * 8. Confirm daily credits reserved/used reconcile (reserved returns to 0 after settle)
  */
 import { describe, expect, it } from 'vitest';

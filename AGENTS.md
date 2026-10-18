@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Kieran's Imagination is an AI-powered coloring page and trading-card creator for kids. Children start creating immediately; work is saved automatically in **My creations** without a project or World setup step. Durable **Creation Jobs** and structured **Card Documents** sit behind that simple flow. Public Hot or Not remains available without login.
+Kieran's Imagination is an AI-powered coloring page and trading-card creator for kids. Children start creating immediately; work is saved automatically in **My creations** without a project or World setup step. Durable **Creation Jobs** and structured **Card Documents** sit behind that simple flow.
 
 **Live site:** https://kieran.app
 
@@ -30,8 +30,7 @@ Kieran's Imagination is an AI-powered coloring page and trading-card creator for
 │   ├── CreationsLibrary.tsx # My creations
 │   ├── worlds/          # internal artwork/revision view (legacy folder name)
 │   ├── cards/           # CardDocumentEditor + CardRenderer
-│   ├── Editor.tsx       # Canvas editor with durable Save Art
-│   └── HotOrNot.tsx     # Public voting (/hot)
+│   └── Editor.tsx       # Canvas editor with durable Save Art
 ├── migrations/          # D1 migrations (through 0007_creation_platform.sql)
 ├── tests/worker/        # Unit/contract tests
 ├── App.tsx              # React Router shell
@@ -64,7 +63,7 @@ SESSION_SIGNING_KEY
 |---------|------|------|---------|
 | `ASSETS` | Assets | dist/ | SPA static files |
 | `IMAGES_BUCKET` | R2 | kieran-images | Media bytes |
-| `DB` | D1 | kieran-db | Jobs, worlds, cards, legacy hot |
+| `DB` | D1 | kieran-db | Jobs, worlds, cards, legacy tables |
 | `IMAGES` | Images | - | Normalize / transform |
 | `CREATION_WORKFLOW` | Workflow | kieran-creation | Durable job execution |
 | `APP_RATE_LIMITER` | Rate limit | - | Login + job submission |
@@ -78,7 +77,6 @@ SESSION_SIGNING_KEY
 5. **Creation Jobs** - idempotent, credit-reserved, Workflow-backed
 6. **Media Assets** - normalized R2 masters/previews (no base64 API)
 7. **Trading Card Documents** - structured fields + single CardRenderer
-8. **Hot or Not** - public legacy `generated_images` only (private world assets excluded)
 
 ## API (new)
 
@@ -95,7 +93,6 @@ SESSION_SIGNING_KEY
 | `/api/worlds` | GET/POST | optional | Internal saved-creation collections; never a required UX step |
 | `/api/artworks/:id` | GET | optional | Artwork + revisions |
 | `/api/cards/:id` | GET/PATCH | optional | Card document |
-| `/api/hot` | GET/POST | no | Public voting |
 | `/api/suggestions` | GET | no | Prompt suggestions |
 
 ## Deployment

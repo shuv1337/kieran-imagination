@@ -536,10 +536,6 @@ export const CreatorHome: React.FC = () => {
             Trading cards
           </Link>
           <span className="mx-2">•</span>
-          <Link to="/hot" className="font-bold text-blue-300 hover:text-blue-200">
-            Hot or Not
-          </Link>
-          <span className="mx-2">•</span>
           Made by <a href="https://latitudes.io" className="font-bold text-blue-400">Latitudes</a>
         </div>
         </div>

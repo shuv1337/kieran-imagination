@@ -1,10 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { handleGetAsset } from '../../worker/uploads';
-import { handleHot } from '../../worker/router';
+import { handleRequest } from '../../worker/router';
 import { openMigratedDb, mockEnv } from './d1-sqlite';
-import { signSession, SESSION_COOKIE } from '../../worker/auth';
 
-describe('Hot or Not private isolation (behavioral)', () => {
+describe('private media asset isolation (behavioral)', () => {
   it('private media_assets are 403 without session owner', async () => {
     const { d1 } = openMigratedDb();
     const env = mockEnv(d1);
@@ -63,49 +62,16 @@ describe('Hot or Not private isolation (behavioral)', () => {
     expect(res.status).toBe(200);
   });
 
-  it('hot list requires login', async () => {
+  it('Hot or Not API is retired', async () => {
     const { d1 } = openMigratedDb();
     const env = mockEnv(d1);
-    const res = await handleHot(
-      new Request('https://kieran.app/api/hot?limit=50&offset=0'),
-      env
-    );
-    expect(res.status).toBe(401);
-  });
-
-  it('hot list only returns legacy generated_images, never private media_assets', async () => {
-    const { d1 } = openMigratedDb();
-    const env = mockEnv(d1);
-    const now = Date.now();
-
-    await d1
-      .prepare(
-        `INSERT INTO generated_images (id, file_name, prompt, r2_key, created_at, source, metadata)
-         VALUES ('legacy-hot', 'a.png', 'a cat', 'generated/2026/a.png', ?, 'generate', '{}')`
-      )
-      .bind(now)
-      .run();
-
-    await d1
-      .prepare(
-        `INSERT INTO media_assets
-         (id, owner_id, role, visibility, mime_type, width, height, byte_length, sha256, r2_key, created_at)
-         VALUES ('world-private', 'household', 'master', 'private', 'image/png', 10, 10, 3, 'h', 'jobs/x/master.png', ?)`
-      )
-      .bind(now)
-      .run();
-
-    const token = await signSession(env, 'household');
-    const res = await handleHot(
-      new Request('https://kieran.app/api/hot?limit=50&offset=0', {
-        headers: { Cookie: `${SESSION_COOKIE}=${token}` },
-      }),
-      env
-    );
-    expect(res.status).toBe(200);
-    const data = (await res.json()) as { images: Array<{ id: string }> };
-    const ids = data.images.map((i) => i.id);
-    expect(ids).toContain('legacy-hot');
-    expect(ids).not.toContain('world-private');
+    for (const method of ['GET', 'POST']) {
+      const res = await handleRequest(
+        new Request('https://kieran.app/api/hot', { method }),
+        env,
+        {} as ExecutionContext
+      );
+      expect(res.status).toBe(404);
+    }
   });
 });

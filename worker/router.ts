@@ -37,18 +37,6 @@ function getClientIp(request: Request): string {
 }
 
 const ROUTE_META: Record<string, { title: string; description: string; image: string }> = {
-  '/hot': {
-    title: 'HOT or NOT? | Coloring Page Rankings',
-    description:
-      'Vote on AI-generated coloring pages! Rate them HOT or NOT and see which creations rise to the top.',
-    image: 'https://kieran.app/hot-share-banner.png',
-  },
-  '/hotornot': {
-    title: 'HOT or NOT? | Coloring Page Rankings',
-    description:
-      'Vote on AI-generated coloring pages! Rate them HOT or NOT and see which creations rise to the top.',
-    image: 'https://kieran.app/hot-share-banner.png',
-  },
   '/cards': {
     title: "Trading Card Generator | Kieran's Imagination",
     description:
@@ -61,181 +49,6 @@ const ROUTE_META: Record<string, { title: string; description: string; image: st
     image: 'https://kieran.app/og-share-banner.png',
   },
 };
-
-function wilsonScore(upvotes: number, downvotes: number, z = 1.96): number {
-  const n = upvotes + downvotes;
-  if (n === 0) return 0;
-  const p = upvotes / n;
-  const zsq = z * z;
-  const numerator = p + zsq / (2 * n) - z * Math.sqrt((p * (1 - p) + zsq / (4 * n)) / n);
-  const denominator = 1 + zsq / n;
-  return numerator / denominator;
-}
-
-function calculateHotScore(
-  upvotes: number,
-  downvotes: number,
-  createdAt: number,
-  now: number
-): number {
-  const totalVotes = upvotes + downvotes;
-  const wilson = wilsonScore(upvotes, downvotes);
-  const hoursOld = Math.max(0, (now - createdAt) / (1000 * 60 * 60));
-  const halfLife = 24;
-  const timeBoost = 1 / (1 + hoursOld / halfLife);
-  const newItemBonus = totalVotes < 3 ? 0.3 * (1 - totalVotes / 3) : 0;
-  const engagementBonus = totalVotes > 0 ? Math.log10(1 + totalVotes) * 0.1 : 0;
-  const wilsonWeight = Math.min(0.7, 0.3 + totalVotes * 0.04);
-  const timeWeight = 1 - wilsonWeight;
-  return wilson * wilsonWeight + timeBoost * timeWeight + newItemBonus + engagementBonus;
-}
-
-export async function handleHot(request: Request, env: Env): Promise<Response> {
-  // Hot or Not requires household login (browsing + voting).
-  const auth = await requireSession(request, env);
-  if (auth instanceof Response) return auth;
-
-  const ip = getClientIp(request);
-
-  if (request.method === 'GET') {
-    try {
-      const url = new URL(request.url);
-      const limit = Math.min(parseInt(url.searchParams.get('limit') || '20', 10), 100);
-      const offset = parseInt(url.searchParams.get('offset') || '0', 10);
-      const now = Date.now();
-
-      // Public legacy generated_images only — private media_assets never appear.
-      const result = await env.DB.prepare(
-        `
-        SELECT
-          gi.id,
-          gi.r2_key,
-          gi.prompt,
-          gi.created_at,
-          COALESCE(SUM(CASE WHEN iv.vote_type = 'hot' THEN 1 ELSE 0 END), 0) as hot_votes,
-          COALESCE(SUM(CASE WHEN iv.vote_type = 'not' THEN 1 ELSE 0 END), 0) as not_votes,
-          COALESCE(SUM(CASE WHEN iv.vote_type = 'hot' THEN 1 ELSE 0 END), 0) -
-          COALESCE(SUM(CASE WHEN iv.vote_type = 'not' THEN 1 ELSE 0 END), 0) as rating,
-          COUNT(iv.id) as total_votes,
-          (SELECT vote_type FROM image_votes WHERE image_id = gi.id AND voter_ip = ?) as user_vote
-        FROM generated_images gi
-        LEFT JOIN image_votes iv ON gi.id = iv.image_id
-        GROUP BY gi.id
-      `
-      )
-        .bind(ip)
-        .all();
-
-      const allImages = (result.results || []).map((row: any) => {
-        const hotScore = calculateHotScore(row.hot_votes, row.not_votes, row.created_at, now);
-        return {
-          id: row.id,
-          url: `/api/images/view?key=${encodeURIComponent(row.r2_key)}`,
-          prompt: row.prompt,
-          created_at: row.created_at,
-          hot_votes: row.hot_votes,
-          not_votes: row.not_votes,
-          rating: row.rating,
-          total_votes: row.total_votes,
-          user_vote: row.user_vote,
-          hot_score: hotScore,
-        };
-      });
-
-      const TOP_VOTED_COUNT = 3;
-      const FRESH_COUNT = 5;
-      const FRESH_MAX_VOTES = 5;
-      const FRESH_MAX_AGE_HOURS = 48;
-
-      const byVotes = [...allImages].sort((a, b) => {
-        if (b.total_votes !== a.total_votes) return b.total_votes - a.total_votes;
-        return b.rating - a.rating;
-      });
-      const topVoted = byVotes.slice(0, TOP_VOTED_COUNT);
-      const topVotedIds = new Set(topVoted.map((img) => img.id));
-      const freshCutoff = now - FRESH_MAX_AGE_HOURS * 60 * 60 * 1000;
-      const freshImages = allImages
-        .filter(
-          (img) =>
-            !topVotedIds.has(img.id) &&
-            img.total_votes < FRESH_MAX_VOTES &&
-            img.created_at > freshCutoff
-        )
-        .sort((a, b) => b.created_at - a.created_at)
-        .slice(0, FRESH_COUNT);
-      const freshIds = new Set(freshImages.map((img) => img.id));
-      const remaining = allImages
-        .filter((img) => !topVotedIds.has(img.id) && !freshIds.has(img.id))
-        .sort((a, b) => b.hot_score - a.hot_score);
-      const curatedOrder = [...topVoted, ...freshImages, ...remaining];
-      const paginatedImages = curatedOrder.slice(offset, offset + limit);
-
-      return json({
-        images: paginatedImages,
-        total: curatedOrder.length,
-        limit,
-        offset,
-      });
-    } catch (error) {
-      console.error(JSON.stringify({ scope: 'hot-list', error: String(error) }));
-      return json({ error: 'Failed to fetch images' }, 500);
-    }
-  }
-
-  if (request.method === 'POST') {
-    try {
-      const body = await request.json().catch(() => null);
-      const { imageId, voteType } = (body || {}) as { imageId?: string; voteType?: string };
-      if (!imageId) return json({ error: 'Image ID is required' }, 400);
-      if (!voteType || !['hot', 'not'].includes(voteType)) {
-        return json({ error: "Vote type must be 'hot' or 'not'" }, 400);
-      }
-
-      const image = await env.DB.prepare('SELECT id FROM generated_images WHERE id = ?')
-        .bind(imageId)
-        .first();
-      if (!image) return json({ error: 'Image not found' }, 404);
-
-      const existingVote = await env.DB.prepare(
-        'SELECT id, vote_type FROM image_votes WHERE image_id = ? AND voter_ip = ?'
-      )
-        .bind(imageId, ip)
-        .first<{ id: string; vote_type: string }>();
-
-      if (existingVote) {
-        if (existingVote.vote_type === voteType) {
-          await env.DB.prepare('DELETE FROM image_votes WHERE id = ?').bind(existingVote.id).run();
-          return json({ success: true, action: 'removed', message: 'Vote removed' });
-        }
-        await env.DB.prepare(
-          'UPDATE image_votes SET vote_type = ?, created_at = ? WHERE id = ?'
-        )
-          .bind(voteType, Date.now(), existingVote.id)
-          .run();
-        return json({
-          success: true,
-          action: 'changed',
-          voteType,
-          message: `Changed vote to ${voteType}`,
-        });
-      }
-
-      const voteId = crypto.randomUUID();
-      await env.DB.prepare(
-        'INSERT INTO image_votes (id, image_id, vote_type, voter_ip, created_at) VALUES (?, ?, ?, ?, ?)'
-      )
-        .bind(voteId, imageId, voteType, ip, Date.now())
-        .run();
-
-      return json({ success: true, action: 'added', voteType, message: `Voted ${voteType}!` });
-    } catch (error) {
-      console.error(JSON.stringify({ scope: 'hot-vote', error: String(error) }));
-      return json({ error: 'Failed to submit vote' }, 500);
-    }
-  }
-
-  return json({ error: 'Method not allowed' }, 405);
-}
 
 async function handleSuggestions(request: Request, env: Env): Promise<Response> {
   const FALLBACK = [
@@ -361,8 +174,48 @@ export async function handleRequest(
   env: Env,
   ctx: ExecutionContext
 ): Promise<Response> {
+  const started = Date.now();
   const response = await routeRequest(request, env, ctx);
+  if (shouldLogRequest(request) && typeof ctx?.waitUntil === 'function') {
+    ctx.waitUntil(logRequest(request, env, response.status, Date.now() - started));
+  }
   return withGuestCookie(request, response);
+}
+
+/** Usage signal for the admin dashboard; skips image streaming and job polling noise. */
+function shouldLogRequest(request: Request): boolean {
+  const { pathname } = new URL(request.url);
+  if (!pathname.startsWith('/api/')) return false;
+  if (request.method === 'GET' && pathname.startsWith('/api/assets/')) return false;
+  if (request.method === 'GET' && /^\/api\/jobs\/[^/]+$/.test(pathname)) return false;
+  return true;
+}
+
+async function logRequest(
+  request: Request,
+  env: Env,
+  statusCode: number,
+  durationMs: number
+): Promise<void> {
+  try {
+    await env.DB.prepare(
+      `INSERT INTO request_logs (id, timestamp, ip_address, endpoint, method, status_code, duration_ms, user_agent)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+      .bind(
+        crypto.randomUUID(),
+        Date.now(),
+        getClientIp(request),
+        new URL(request.url).pathname,
+        request.method,
+        statusCode,
+        durationMs,
+        request.headers.get('user-agent') || 'unknown'
+      )
+      .run();
+  } catch (error) {
+    console.error(JSON.stringify({ scope: 'request-log', error: String(error) }));
+  }
 }
 
 async function routeRequest(
@@ -384,9 +237,6 @@ async function routeRequest(
     }
     if (path === '/api/session' && request.method === 'GET') {
       return handleSession(request, env);
-    }
-    if (path === '/api/hot') {
-      return handleHot(request, env);
     }
     if (path === '/api/suggestions' && request.method === 'GET') {
       return handleSuggestions(request, env);

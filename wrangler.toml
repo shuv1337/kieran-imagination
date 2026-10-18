@@ -12,7 +12,7 @@ routes = [
 directory = "./dist"
 binding = "ASSETS"
 not_found_handling = "single-page-application"
-run_worker_first = ["/api/*", "/hot", "/hotornot", "/cards", "/worlds", "/worlds/*", "/login"]
+run_worker_first = ["/api/*", "/cards", "/worlds", "/worlds/*", "/login"]
 
 [images]
 binding = "IMAGES"

@@ -15,7 +15,6 @@ Live site: [kieran.app](https://kieran.app)
 - Builds structured trading cards whose text and frame stay editable
 - Runs creation as durable jobs that survive refreshes
 - Normalizes generated and uploaded media into R2 assets
-- Keeps the public Hot or Not gallery at `/hot`
 
 ## Architecture
 
@@ -92,7 +91,6 @@ bun run check
 | `/api/worlds` | GET/POST | Internal saved-creation collection API |
 | `/api/artworks/:id` | GET | Read artwork and revision history |
 | `/api/cards/:id` | GET/PATCH | Read or update a structured card document |
-| `/api/hot` | GET/POST | Public Hot or Not voting |
 | `/api/suggestions` | GET | Get prompt suggestions |
 
 ## Deployment
