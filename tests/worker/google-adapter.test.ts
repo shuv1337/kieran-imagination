@@ -81,4 +81,32 @@ describe('GoogleModelAdapter response mapping', () => {
     expect(mapGoogleError(filtered('x'))).toMatchObject({ category: 'filtered' });
     expect(mapGoogleError(noOutput())).toMatchObject({ category: 'no_output' });
   });
+
+  it('maps a depleted prepaid balance (402) to a non-retryable, uncharged account error', () => {
+    const err = mapGoogleError(
+      Object.assign(
+        new Error(
+          '{"error":{"code":402,"message":"Your prepayment credits are depleted.","status":"RESOURCE_EXHAUSTED"}}'
+        ),
+        { status: 402 }
+      )
+    );
+    expect(err).toMatchObject({ category: 'provider_account', retryable: false, providerTouched: false });
+  });
+
+  it('maps an invalid API key to provider_account', () => {
+    expect(
+      mapGoogleError(Object.assign(new Error('API key not valid'), { status: 400 })).category
+    ).toBe('provider_account');
+  });
+
+  it('does not treat "generate" in a message as a rate limit', () => {
+    const err = mapGoogleError(
+      Object.assign(
+        new Error('models/x is not found for API version v1beta, or is not supported for generateContent'),
+        { status: 404 }
+      )
+    );
+    expect(err.category).not.toBe('rate_limited');
+  });
 });

@@ -18,6 +18,7 @@ import type {
 import {
   filtered,
   noOutput,
+  providerAccount,
   providerUnavailable,
   rateLimited,
   timeout,
@@ -61,7 +62,24 @@ export function mapGoogleError(error: unknown): CreationError {
 
   const lower = message.toLowerCase();
 
-  if (status === 429 || lower.includes('resource_exhausted') || lower.includes('rate')) {
+  // Account problems first: a depleted prepaid balance comes back as
+  // 402 RESOURCE_EXHAUSTED and must not be treated as a transient rate limit.
+  if (
+    status === 401 ||
+    status === 402 ||
+    status === 403 ||
+    lower.includes('prepayment credits') ||
+    lower.includes('billing') ||
+    lower.includes('api key not valid') ||
+    lower.includes('api_key_invalid')
+  ) {
+    return providerAccount(message);
+  }
+  if (
+    status === 429 ||
+    lower.includes('resource_exhausted') ||
+    /\brate[\s_-]?limit/.test(lower)
+  ) {
     return rateLimited(message);
   }
   if (status === 408 || lower.includes('timeout') || lower.includes('deadline')) {

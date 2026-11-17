@@ -38,6 +38,7 @@ export type FailureCategory =
   | 'invalid_input'
   | 'filtered'
   | 'rate_limited'
+  | 'provider_account'
   | 'provider_unavailable'
   | 'timeout'
   | 'no_output'

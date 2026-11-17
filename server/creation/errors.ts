@@ -20,6 +20,7 @@ export const PUBLIC_ERROR_MESSAGES: Record<FailureCategory, string> = {
   invalid_input: 'That request looks incomplete. Check your prompt or image and try again.',
   filtered: 'Your idea was blocked by content filters. Try a different, kid-friendly idea!',
   rate_limited: 'The magic studio is busy. Please wait a moment and try again.',
+  provider_account: 'The magic studio is closed for now. Ask a grown-up to check on it.',
   provider_unavailable: "We couldn't reach the art studio. Please try again.",
   timeout: 'That took too long. Please try again.',
   no_output: "We didn't get a picture back. Please try again.",
@@ -41,6 +42,15 @@ export function filtered(
 
 export function rateLimited(message = 'Provider rate limited. Please wait and try again.'): CreationError {
   return new CreationError('rate_limited', message, true, 429, true);
+}
+
+/**
+ * Provider account problem (billing/prepaid credits depleted, invalid or
+ * unauthorized API key). Retrying cannot help and nothing was generated,
+ * so it is neither retried nor charged.
+ */
+export function providerAccount(message = 'Provider account needs attention.'): CreationError {
+  return new CreationError('provider_account', message, false, 503, false);
 }
 
 export function providerUnavailable(

@@ -8,6 +8,9 @@ routes = [
   { pattern = "kieran.app/*", zone_name = "kieran.app" }
 ]
 
+[observability]
+enabled = true
+
 [assets]
 directory = "./dist"
 binding = "ASSETS"
